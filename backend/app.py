@@ -4,6 +4,7 @@ from models.user_models import User, Role
 from models.trek_models import Trek, Booking
 from routes.auth_routes import auth_bp
 from routes.admin_routes import admin_bp
+from routes.staff_routes import staff_bp
 from flask_security import Security, SQLAlchemyUserDatastore, hash_password
 from flask_wtf.csrf import CSRFProtect
 from flask_cors import CORS
@@ -36,7 +37,7 @@ security = Security(app, user_datastore)
 # Register Blueprints
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
-
+app.register_blueprint(staff_bp)
 # Programmatic Database Initialization
 with app.app_context():
     db.create_all()
