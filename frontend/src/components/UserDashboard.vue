@@ -50,6 +50,13 @@
         </div>
       </div>
 
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <span class="mb-0">My Booking History</span>
+        <button class="btn btn-sm btn-outline-light" @click="exportCSV" :disabled="isExporting">
+          {{ isExporting ? 'Generating...' : 'Export CSV' }}
+        </button>
+      </div>
+
       <div class="col-md-5">
         <div class="card shadow-sm">
           <div class="card-header bg-dark text-white">My Booking History</div>
@@ -106,7 +113,8 @@ export default {
       searchQuery: '',
       filterDifficulty: '',
       message: '',
-      isError: false
+      isError: false,
+      isExporting: false
     }
   },
   mounted() {
@@ -165,6 +173,51 @@ export default {
       } catch (err) {
         this.isError = true;
         this.message = 'Error cancelling booking.';
+      }
+    },
+    async exportCSV() {
+      this.isExporting = true;
+      this.message = "Exporting your history... Please wait.";
+      this.isError = false;
+
+      try {
+        // 1. Trigger the background task
+        const response = await axios.post('http://127.0.0.1:5000/api/user/export');
+        const taskId = response.data.task_id;
+
+        // 2. Poll the server every 2 seconds until the file is ready
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusRes = await axios.get(`http://127.0.0.1:5000/api/user/export/status/${taskId}`, {
+              responseType: 'blob' // Important: We are expecting a file back!
+            });
+
+            // If the server sends back a JSON stating it's still processing, it won't be a blob.
+            // If it's a file, the type will be text/csv
+            if (statusRes.headers['content-type'] === 'text/csv; charset=utf-8' || statusRes.data.type === 'text/csv') {
+              clearInterval(pollInterval);
+
+              // Force the browser to download the file
+              const url = window.URL.createObjectURL(new Blob([statusRes.data]));
+              const link = document.createElement('a');
+              link.href = url;
+              link.setAttribute('download', 'My_Trekking_History.csv');
+              document.body.appendChild(link);
+              link.click();
+
+              this.isExporting = false;
+              this.message = "Export completed successfully!";
+              setTimeout(() => this.message = '', 3000);
+            }
+          } catch (pollErr) {
+            // Ignore 202 Processing errors, catch real ones
+          }
+        }, 2000);
+
+      } catch (err) {
+        this.isExporting = false;
+        this.isError = true;
+        this.message = "Failed to start export.";
       }
     },
     logout() {

@@ -3,6 +3,8 @@ from flask_security import auth_required, roles_required, current_user
 from models import db
 from models.trek_models import Trek, Booking
 from datetime import datetime
+from flask import send_file
+import os
 
 # Define the blueprint
 user_bp = Blueprint('user_bp', __name__)
@@ -118,3 +120,30 @@ def cancel_booking(booking_id):
         
     db.session.commit()
     return jsonify({"message": "Booking cancelled successfully."}), 200
+
+# 5. API to trigger the background job
+@user_bp.route('/api/user/export', methods=['POST'])
+@auth_required('token')
+@roles_required('trekker')
+def trigger_export():
+    from tasks import export_booking_history_csv
+    # The .delay() method tells Celery to run this in the background!
+    task = export_booking_history_csv.delay(current_user.id)
+    return jsonify({"message": "Export started!", "task_id": task.id}), 202
+
+# 6. API to check status and download the file
+@user_bp.route('/api/user/export/status/<task_id>', methods=['GET'])
+@auth_required('token')
+@roles_required('trekker')
+def export_status(task_id):
+    from celery.result import AsyncResult
+    task_result = AsyncResult(task_id)
+    
+    if task_result.state == 'SUCCESS':
+        # Provide the file download to the user
+        file_path = task_result.result
+        return send_file(os.path.join('..', file_path), as_attachment=True)
+    elif task_result.state == 'FAILURE':
+        return jsonify({"status": "Failed"}), 500
+    else:
+        return jsonify({"status": "Processing"}), 202

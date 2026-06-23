@@ -9,6 +9,7 @@ from routes.user_routes import user_bp
 from flask_security import Security, SQLAlchemyUserDatastore, hash_password
 from flask_wtf.csrf import CSRFProtect
 from flask_cors import CORS
+from celery import Celery
 import uuid
 
 app = Flask(__name__)
@@ -21,6 +22,31 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///trekking.sqlite3'
 app.config['SECURITY_PASSWORD_SALT'] = 'super-secret-salt-change-this'
 app.config['SECURITY_PASSWORD_HASH'] = 'bcrypt'
 
+def make_celery(app):
+    celery = Celery(app.import_name, broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
+
+    # --- BEAT SCHEDULE CONFIGURATION ---
+    celery.conf.beat_schedule = {
+        'daily-reminder-test': {
+            'task': 'tasks.send_daily_reminders',
+            'schedule': 60.0, # RUNS EVERY 60 SECONDS (For testing!)
+        },
+        'monthly-report-test': {
+            'task': 'tasks.send_monthly_report',
+            'schedule': 120.0, # RUNS EVERY 120 SECONDS (For testing!)
+        }
+    }
+    celery.conf.timezone = 'UTC'
+    
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+    celery.Task = ContextTask
+    return celery
+
+celery = make_celery(app)
+        
 # API Auth Configs
 app.config['SECURITY_TOKEN_AUTHENTICATION_HEADER'] = 'Authentication-Token'
 app.config['SECURITY_TOKEN_MAX_AGE'] = 3600 
