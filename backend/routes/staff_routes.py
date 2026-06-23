@@ -41,9 +41,8 @@ def get_assigned_treks():
 @roles_required('staff')
 def update_trek(trek_id):
     staff_profile = StaffProfile.query.filter_by(user_id=current_user.id).first()
-    
-    # Ensure the trek exists AND belongs to this specific staff member
     trek = Trek.query.filter_by(id=trek_id, assigned_staff_id=staff_profile.id).first()
+    
     if not trek:
         return jsonify({"message": "Trek not found or unauthorized."}), 403
         
@@ -53,6 +52,12 @@ def update_trek(trek_id):
     if 'status' in data:
         trek.status = data['status']
         
+        # NEW LOGIC: Cascade completion to bookings
+        if trek.status == 'Completed':
+            active_bookings = Booking.query.filter_by(trek_id=trek.id, status='Booked').all()
+            for b in active_bookings:
+                b.status = 'Completed'
+                
     db.session.commit()
     return jsonify({"message": "Trek updated successfully"}), 200
 

@@ -47,12 +47,23 @@ def book_trek(trek_id):
     if not trek or trek.status != 'Open' or trek.available_slots <= 0:
         return jsonify({"message": "Trek is currently unavailable for booking."}), 400
         
-    # Validation 2: Has the user already booked this trek?
+    # Validation 2: Check for existing bookings
     existing_booking = Booking.query.filter_by(user_id=current_user.id, trek_id=trek_id).first()
+    
     if existing_booking:
-        return jsonify({"message": "You have already booked this trek."}), 400
+        if existing_booking.status == 'Booked':
+            return jsonify({"message": "You have already booked this trek."}), 400
+        elif existing_booking.status == 'Completed':
+            return jsonify({"message": "You have already completed this trek."}), 400
+        elif existing_booking.status == 'Cancelled':
+            # REACTIVATE THE CANCELLED BOOKING
+            existing_booking.status = 'Booked'
+            existing_booking.booking_date = datetime.utcnow()
+            trek.available_slots -= 1
+            db.session.commit()
+            return jsonify({"message": "Trek booked successfully!"}), 201
 
-    # Create booking and reduce available slots
+    # If no record exists at all, create a brand new one
     new_booking = Booking(
         user_id=current_user.id,
         trek_id=trek_id,
@@ -86,3 +97,24 @@ def get_my_bookings():
         })
         
     return jsonify(history), 200
+
+# 4. API to Cancel a Booking
+@user_bp.route('/api/user/bookings/<int:booking_id>/cancel', methods=['PUT'])
+@auth_required('token')
+@roles_required('trekker')
+def cancel_booking(booking_id):
+    # Ensure the booking belongs to this user and is currently 'Booked'
+    booking = Booking.query.filter_by(id=booking_id, user_id=current_user.id).first()
+    if not booking or booking.status != 'Booked':
+        return jsonify({"message": "Invalid booking or already cancelled/completed."}), 400
+
+    # Update status to Cancelled
+    booking.status = 'Cancelled'
+    
+    # Free up the slot in the Trek
+    trek = Trek.query.get(booking.trek_id)
+    if trek:
+        trek.available_slots += 1
+        
+    db.session.commit()
+    return jsonify({"message": "Booking cancelled successfully."}), 200

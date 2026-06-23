@@ -153,6 +153,49 @@
         </form>
       </div>
     </div>
+    
+    <div class="row mt-4 mb-5">
+      <div class="col-12">
+        <div class="card shadow-sm border-info">
+          <div class="card-header bg-info text-dark d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Global Booking History</h5>
+            <button class="btn btn-sm btn-light" @click="showBookings = !showBookings">
+              {{ showBookings ? 'Hide Bookings' : 'View All Bookings' }}
+            </button>
+          </div>
+          
+          <div class="card-body p-0" v-if="showBookings">
+            <table class="table table-striped table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Booking ID</th>
+                  <th>User Email</th>
+                  <th>Trek Name</th>
+                  <th>Booking Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="booking in bookingList" :key="booking.id">
+                  <td>#{{ booking.id }}</td>
+                  <td>{{ booking.user_email }}</td>
+                  <td><strong>{{ booking.trek_name }}</strong></td>
+                  <td>{{ booking.date }}</td>
+                  <td>
+                    <span class="badge" :class="booking.status === 'Booked' ? 'bg-primary' : (booking.status === 'Completed' ? 'bg-success' : 'bg-danger')">
+                      {{ booking.status }}
+                    </span>
+                  </td>
+                </tr>
+                <tr v-if="bookingList.length === 0">
+                  <td colspan="5" class="text-center py-4 text-muted">No bookings found in the system.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
 
   </div>
 </template>
@@ -166,17 +209,20 @@ export default {
       stats: { total_treks: 0, total_users: 0, total_staff: 0, total_bookings: 0 },
       staffForm: { name: '', contact: '', email: '', password: '' },
       message: '',
-      
-      // New Data for Treks
       trekForm: { name: '', location: '', difficulty: 'Moderate', duration: 1, slots: 10, staff_id: '' },
       trekList: [],
       staffList: [],
-      trekMessage: ''
+      trekMessage: '',
+      
+      // NEW VARIABLES FOR STEP 4
+      bookingList: [],
+      showBookings: false
     }
   },
   mounted() {
     this.fetchStats()
     this.fetchTreksAndStaff()
+    this.fetchAllBookings() 
   },
   methods: {
     async fetchStats() {
@@ -223,6 +269,14 @@ export default {
         setTimeout(() => this.trekMessage = '', 3000)
       } catch (err) {
         this.trekMessage = 'Error creating trek.'
+      }
+    },
+    async fetchAllBookings() {
+      try {
+        const response = await axios.get('http://127.0.0.1:5000/api/admin/bookings')
+        this.bookingList = response.data
+      } catch (err) {
+        console.error("Error fetching global bookings", err)
       }
     },
     logout() {

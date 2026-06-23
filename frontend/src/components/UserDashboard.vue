@@ -14,10 +14,11 @@
         <div class="card shadow-sm mb-4">
           <div class="card-header bg-success text-white">Explore Available Treks</div>
           <div class="card-body bg-light">
-            
+
             <div class="row mb-3">
               <div class="col-md-7">
-                <input type="text" class="form-control" placeholder="Search by name or location..." v-model="searchQuery" @input="fetchOpenTreks">
+                <input type="text" class="form-control" placeholder="Search by name or location..."
+                  v-model="searchQuery" @input="fetchOpenTreks">
               </div>
               <div class="col-md-5">
                 <select class="form-select" v-model="filterDifficulty" @change="fetchOpenTreks">
@@ -30,10 +31,12 @@
             </div>
 
             <div class="list-group">
-              <div v-for="trek in availableTreks" :key="trek.id" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-2 shadow-sm rounded">
+              <div v-for="trek in availableTreks" :key="trek.id"
+                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-2 shadow-sm rounded">
                 <div>
                   <h5 class="mb-1">{{ trek.name }}</h5>
-                  <p class="mb-1 text-muted"><small>📍 {{ trek.location }} | ⏱️ {{ trek.duration }} days | ⛰️ {{ trek.difficulty }}</small></p>
+                  <p class="mb-1 text-muted"><small>📍 {{ trek.location }} | ⏱️ {{ trek.duration }} days | ⛰️ {{
+                    trek.difficulty }}</small></p>
                   <small class="text-success fw-bold">{{ trek.slots }} slots left</small>
                 </div>
                 <button class="btn btn-primary" @click="bookTrek(trek.id)">Book Now</button>
@@ -57,6 +60,7 @@
                   <th>Trek</th>
                   <th>Date</th>
                   <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -67,15 +71,20 @@
                   </td>
                   <td>{{ booking.booking_date }}</td>
                   <td>
-                    <span class="badge" :class="booking.status === 'Booked' ? 'bg-primary' : (booking.status === 'Completed' ? 'bg-success' : 'bg-danger')">
+                    <span class="badge"
+                      :class="booking.status === 'Booked' ? 'bg-primary' : (booking.status === 'Completed' ? 'bg-success' : 'bg-danger')">
                       {{ booking.status }}
                     </span>
-                    <br>
-                    <small v-if="booking.trek_status === 'Completed'" class="text-success text-decoration-underline">Trek Finished</small>
+                  </td>
+                  <td>
+                    <button v-if="booking.status === 'Booked'" class="btn btn-sm btn-outline-danger"
+                      @click="cancelBooking(booking.booking_id)">
+                      Cancel
+                    </button>
                   </td>
                 </tr>
                 <tr v-if="myBookings.length === 0">
-                  <td colspan="3" class="text-center py-4">You haven't booked any treks yet.</td>
+                  <td colspan="4" class="text-center py-4">You haven't booked any treks yet.</td>
                 </tr>
               </tbody>
             </table>
@@ -129,15 +138,33 @@ export default {
         const response = await axios.post(`http://127.0.0.1:5000/api/user/book/${trekId}`)
         this.isError = false
         this.message = response.data.message
-        
+
         // Refresh both lists immediately
         this.fetchOpenTreks()
         this.fetchMyBookings()
-        
+
         setTimeout(() => this.message = '', 4000)
       } catch (err) {
         this.isError = true
         this.message = err.response?.data?.message || 'Error booking trek.'
+      }
+    },
+    async cancelBooking(bookingId) {
+      if (!confirm('Are you sure you want to cancel this booking?')) return;
+
+      try {
+        const response = await axios.put(`http://127.0.0.1:5000/api/user/bookings/${bookingId}/cancel`);
+        this.message = response.data.message;
+        this.isError = false;
+
+        // Refresh both lists to show updated slots and status
+        this.fetchOpenTreks();
+        this.fetchMyBookings();
+
+        setTimeout(() => this.message = '', 3000);
+      } catch (err) {
+        this.isError = true;
+        this.message = 'Error cancelling booking.';
       }
     },
     logout() {

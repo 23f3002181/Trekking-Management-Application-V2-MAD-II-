@@ -98,3 +98,22 @@ def create_staff():
     db.session.commit()
 
     return jsonify({"message": "Trek Staff created successfully"}), 201
+
+# 3. API to Fetch All Bookings
+@admin_bp.route('/api/admin/bookings', methods=['GET'])
+@auth_required('token')
+@roles_required('admin')
+def get_all_bookings():
+    bookings = Booking.query.all()
+    history = []
+    for b in bookings:
+        user = User.query.get(b.user_id)
+        trek = Trek.query.get(b.trek_id)
+        history.append({
+            "id": b.id,
+            "user_email": user.email,
+            "trek_name": trek.name,
+            "date": b.booking_date.strftime("%Y-%m-%d"),
+            "status": b.status
+        })
+    return jsonify(history), 200
