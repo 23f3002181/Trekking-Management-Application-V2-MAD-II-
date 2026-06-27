@@ -3,6 +3,7 @@ from flask_security import auth_required, roles_required, current_user
 from models import db
 from models.trek_models import Trek, Booking
 from models.user_models import User, StaffProfile
+from cache import cache
 
 # Define the blueprint
 staff_bp = Blueprint('staff_bp', __name__)
@@ -59,6 +60,7 @@ def update_trek(trek_id):
                 b.status = 'Completed'
                 
     db.session.commit()
+    cache.clear()  
     return jsonify({"message": "Trek updated successfully"}), 200
 
 # 3. API to view registered participants for a trek

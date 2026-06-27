@@ -4,6 +4,7 @@ from flask_security.utils import hash_password
 from models import db
 from models.user_models import User, StaffProfile
 from models.trek_models import Trek, Booking
+from cache import cache
 import uuid
 
 # Define the blueprint
@@ -28,6 +29,7 @@ def manage_treks():
         )
         db.session.add(new_trek)
         db.session.commit()
+        cache.clear()
         return jsonify({"message": "Trek route created successfully"}), 201
 
     # If GET request, return all treks and staff (for the assignment dropdown)

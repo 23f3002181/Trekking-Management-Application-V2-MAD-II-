@@ -10,6 +10,7 @@ from flask_security import Security, SQLAlchemyUserDatastore, hash_password
 from flask_wtf.csrf import CSRFProtect
 from flask_cors import CORS
 from celery import Celery
+from cache import cache
 import uuid
 
 app = Flask(__name__)
@@ -21,6 +22,12 @@ app.config['SECRET_KEY'] = 'super-secret-key-change-this'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///trekking.sqlite3'
 app.config['SECURITY_PASSWORD_SALT'] = 'super-secret-salt-change-this'
 app.config['SECURITY_PASSWORD_HASH'] = 'bcrypt'
+
+#CACHE CONFIGURATION
+app.config['CACHE_TYPE'] = 'RedisCache'
+app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
+app.config['CACHE_DEFAULT_TIMEOUT'] = 60 # Cache expires after 60 seconds
+cache.init_app(app)
 
 def make_celery(app):
     celery = Celery(app.import_name, broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')

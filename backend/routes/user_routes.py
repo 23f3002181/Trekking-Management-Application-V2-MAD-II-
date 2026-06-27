@@ -4,6 +4,7 @@ from models import db
 from models.trek_models import Trek, Booking
 from datetime import datetime
 from flask import send_file
+from cache import cache
 import os
 
 # Define the blueprint
@@ -13,7 +14,9 @@ user_bp = Blueprint('user_bp', __name__)
 @user_bp.route('/api/user/treks', methods=['GET'])
 @auth_required('token')
 @roles_required('trekker')
+@cache.cached(timeout=60, query_string=True)
 def get_open_treks():
+    print("Fetching treks from the Database...")
     search = request.args.get('search', '').lower()
     difficulty = request.args.get('difficulty', '')
 
@@ -63,6 +66,7 @@ def book_trek(trek_id):
             existing_booking.booking_date = datetime.utcnow()
             trek.available_slots -= 1
             db.session.commit()
+        
             return jsonify({"message": "Trek booked successfully!"}), 201
 
     # If no record exists at all, create a brand new one
@@ -76,6 +80,7 @@ def book_trek(trek_id):
     
     db.session.add(new_booking)
     db.session.commit()
+    cache.clear() 
     
     return jsonify({"message": "Trek booked successfully!"}), 201
 
@@ -119,6 +124,7 @@ def cancel_booking(booking_id):
         trek.available_slots += 1
         
     db.session.commit()
+    cache.clear()
     return jsonify({"message": "Booking cancelled successfully."}), 200
 
 # 5. API to trigger the background job
