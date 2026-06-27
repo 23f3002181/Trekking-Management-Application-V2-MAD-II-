@@ -32,6 +32,8 @@ def api_register():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
+    full_name = data.get('full_name')
+    contact = data.get('contact')
 
     datastore = current_app.extensions['security'].datastore
 
@@ -42,6 +44,8 @@ def api_register():
         email=email, 
         password=hash_password(password),
         fs_uniquifier=str(uuid.uuid4()),
+        full_name=full_name,
+        contact=contact,
         roles=['trekker']
     )
     db.session.commit()

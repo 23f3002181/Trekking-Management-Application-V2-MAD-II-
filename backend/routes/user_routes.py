@@ -6,6 +6,8 @@ from datetime import datetime
 from flask import send_file
 from cache import cache
 import os
+import datetime
+from sqlalchemy import func
 
 # Define the blueprint
 user_bp = Blueprint('user_bp', __name__)
@@ -153,3 +155,59 @@ def export_status(task_id):
         return jsonify({"status": "Failed"}), 500
     else:
         return jsonify({"status": "Processing"}), 202
+    
+# 7. Public Analytics API
+@user_bp.route('/api/public/analytics', methods=['GET'])
+def public_analytics():
+    # 1. Most Popular Treks (Top 5 by number of bookings)
+    popular_treks = db.session.query(
+        Trek.name, func.count(Booking.id)
+    ).outerjoin(Booking, Trek.id == Booking.trek_id) \
+     .group_by(Trek.id) \
+     .order_by(func.count(Booking.id).desc()) \
+     .limit(5).all()
+
+    trek_names = [t[0] for t in popular_treks]
+    trek_counts = [t[1] for t in popular_treks]
+
+    # 2. Trek Status Distribution
+    status_counts = db.session.query(
+        Trek.status, func.count(Trek.id)
+    ).group_by(Trek.status).all()
+
+    statuses = [s[0] for s in status_counts]
+    status_values = [s[1] for s in status_counts]
+
+    # 3. NEW: Monthly Booking Trends (Participation Statistics)
+    # Fetch all non-cancelled bookings
+    all_bookings = db.session.query(Booking.booking_date).filter(
+        Booking.status.in_(['Booked', 'Completed'])
+    ).all()
+    
+    monthly_trends = {}
+    
+    # Group by Year-Month (e.g., '2026-06')
+    for b in all_bookings:
+        if b.booking_date:
+            date_str = b.booking_date.strftime('%Y-%m') 
+            monthly_trends[date_str] = monthly_trends.get(date_str, 0) + 1
+            
+    # Sort chronologically and format for the frontend
+    sorted_months = sorted(monthly_trends.keys())
+    trend_labels = [datetime.datetime.strptime(m, '%Y-%m').strftime('%b %Y') for m in sorted_months]
+    trend_data = [monthly_trends[m] for m in sorted_months]
+
+    return jsonify({
+        "popular_treks": {
+            "labels": trek_names,
+            "data": trek_counts
+        },
+        "trek_status": {
+            "labels": statuses,
+            "data": status_values
+        },
+        "booking_trends": {
+            "labels": trend_labels,
+            "data": trend_data
+        }
+    }), 200

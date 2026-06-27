@@ -7,17 +7,15 @@ from models.trek_models import Trek, Booking
 from cache import cache
 import uuid
 
-# Define the blueprint
 admin_bp = Blueprint('admin_bp', __name__)
 
+# --- TREK MANAGEMENT ---
 @admin_bp.route('/api/admin/treks', methods=['GET', 'POST'])
 @auth_required('token')
 @roles_required('admin')
 def manage_treks():
     if request.method == 'POST':
         data = request.get_json()
-        
-        # Create a new Trek
         new_trek = Trek(
             name=data.get('name'),
             location=data.get('location'),
@@ -32,7 +30,6 @@ def manage_treks():
         cache.clear()
         return jsonify({"message": "Trek route created successfully"}), 201
 
-    # If GET request, return all treks and staff (for the assignment dropdown)
     treks = Trek.query.all()
     staff_profiles = StaffProfile.query.all()
     
@@ -47,12 +44,9 @@ def manage_treks():
     
     staff_list = [{"id": s.id, "name": s.name} for s in staff_profiles]
     
-    return jsonify({
-        "treks": trek_list, 
-        "staff": staff_list
-    }), 200
+    return jsonify({"treks": trek_list, "staff": staff_list}), 200
 
-# 1. API to get Dashboard Statistics
+# --- DASHBOARD STATS ---
 @admin_bp.route('/api/admin/stats', methods=['GET'])
 @auth_required('token')
 @roles_required('admin')
@@ -69,52 +63,93 @@ def get_stats():
         "total_bookings": total_bookings
     }), 200
 
-# 2. API to Create Trek Staff
-@admin_bp.route('/api/admin/staff', methods=['POST'])
+# --- STAFF MANAGEMENT ---
+@admin_bp.route('/api/admin/staff', methods=['GET', 'POST'])
 @auth_required('token')
 @roles_required('admin')
-def create_staff():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    name = data.get('name')
-    contact = data.get('contact')
+def manage_staff():
+    if request.method == 'POST':
+        data = request.get_json()
+        datastore = current_app.extensions['security'].datastore
 
-    datastore = current_app.extensions['security'].datastore
+        if datastore.find_user(email=data.get('email')):
+            return jsonify({"message": "Email already exists"}), 400
 
-    if datastore.find_user(email=email):
-        return jsonify({"message": "Email already exists"}), 400
+        user = datastore.create_user(
+            email=data.get('email'), 
+            password=hash_password(data.get('password')),
+            fs_uniquifier=str(uuid.uuid4()),
+            roles=['staff'],
+            active=True
+        )
+        db.session.flush() 
 
-    # Create the user account
-    user = datastore.create_user(
-        email=email, 
-        password=hash_password(password),
-        fs_uniquifier=str(uuid.uuid4()),
-        roles=['staff']
-    )
-    db.session.flush() # Flush to get the new user.id before committing
+        new_staff = StaffProfile(user_id=user.id, name=data.get('name'), contact_details=data.get('contact'))
+        db.session.add(new_staff)
+        db.session.commit()
+        return jsonify({"message": "Trek Staff created successfully"}), 201
+    
+    # GET Request: Fetch Staff List with Status
+    staff_profiles = StaffProfile.query.all()
+    staff_data = []
+    for sp in staff_profiles:
+        user = User.query.get(sp.user_id)
+        staff_data.append({
+            "id": sp.id,
+            "user_id": user.id,
+            "name": sp.name,
+            "email": user.email,
+            "contact": sp.contact_details,
+            "active": user.active
+        })
+    return jsonify(staff_data), 200
 
-    # Create the linked Staff Profile
-    new_staff = StaffProfile(user_id=user.id, name=name, contact_details=contact)
-    db.session.add(new_staff)
+# --- USER (TREKKER) MANAGEMENT ---
+@admin_bp.route('/api/admin/users', methods=['GET'])
+@auth_required('token')
+@roles_required('admin')
+def get_all_users():
+    # Fetch all users who have the 'trekker' role
+    users = User.query.filter(User.roles.any(name='trekker')).all()
+    user_data = []
+    for u in users:
+        user_data.append({
+            "id": u.id,
+            "name": u.full_name or "N/A",  # Added full_name
+            "email": u.email,
+            "contact": u.contact or "N/A", # Added contact
+            "active": u.active
+        })
+    return jsonify(user_data), 200
+
+# --- TOGGLE ACTIVE/BLACKLIST STATUS ---
+@admin_bp.route('/api/admin/users/<int:user_id>/toggle-status', methods=['PUT'])
+@auth_required('token')
+@roles_required('admin')
+def toggle_user_status(user_id):
+    user = User.query.get_or_404(user_id)
+    user.active = not user.active  # Toggle the boolean
     db.session.commit()
+    status_text = "whitelisted" if user.active else "blacklisted"
+    return jsonify({"message": f"User successfully {status_text}."}), 200
 
-    return jsonify({"message": "Trek Staff created successfully"}), 201
-
-# 3. API to Fetch All Bookings
+# --- BOOKINGS ---
 @admin_bp.route('/api/admin/bookings', methods=['GET'])
 @auth_required('token')
 @roles_required('admin')
 def get_all_bookings():
-    bookings = Booking.query.all()
+    # Optimized Join Query to prevent N+1 DB calls
+    bookings = db.session.query(Booking, User, Trek)\
+        .join(User, Booking.user_id == User.id)\
+        .join(Trek, Booking.trek_id == Trek.id)\
+        .all()
+        
     history = []
-    for b in bookings:
-        user = User.query.get(b.user_id)
-        trek = Trek.query.get(b.trek_id)
+    for b, u, t in bookings:
         history.append({
             "id": b.id,
-            "user_email": user.email,
-            "trek_name": trek.name,
+            "user_email": u.email,
+            "trek_name": t.name,
             "date": b.booking_date.strftime("%Y-%m-%d"),
             "status": b.status
         })
