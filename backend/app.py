@@ -11,6 +11,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_cors import CORS
 from celery import Celery
 from cache import cache
+from celery.schedules import crontab
 import uuid
 
 app = Flask(__name__)
@@ -41,6 +42,11 @@ def make_celery(app):
         'monthly-report-test': {
             'task': 'tasks.send_monthly_report',
             'schedule': 120.0, # RUNS EVERY 120 SECONDS (For testing!)
+        },
+        'auto-complete-treks-midnight': {
+            'task': 'tasks.auto_complete_treks',
+            #'schedule': crontab(hour=0, minute=0),Runs every night at midnight UTC
+            'schedule': 90.0, # test it every 90 seconds!
         }
     }
     celery.conf.timezone = 'UTC'

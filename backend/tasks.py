@@ -1,5 +1,6 @@
 from app import celery
 from models import db
+from datetime import datetime, timedelta
 from models.trek_models import Trek, Booking
 from models.user_models import User
 import csv
@@ -94,3 +95,34 @@ def send_monthly_report():
     print(f"[SIMULATED EMAIL] Sent to admin@tma.com. Attachment saved at: {filepath}")
     print("--- REPORT GENERATED ---\n")
     return "Monthly Report Generated"
+
+@celery.task
+def auto_complete_treks():
+    print("\n--- RUNNING AUTO-COMPLETE JOB ---")
+    
+    # Fetch all currently active bookings
+    active_bookings = Booking.query.filter_by(status='Booked').all()
+    updated_count = 0
+    
+    for booking in active_bookings:
+        trek = Trek.query.get(booking.trek_id)
+        if trek:
+            # Calculate the end date (booking_date + duration_days)
+            end_date = booking.booking_date + timedelta(days=trek.duration_days)
+            
+            # If today's date is past the end date, complete it!
+            if datetime.utcnow() > end_date:
+                booking.status = 'Completed'
+                # Free up the slot for future trekkers
+                trek.available_slots += 1 
+                updated_count += 1
+                
+    # Commit changes to the database
+    if updated_count > 0:
+        db.session.commit()
+        print(f"Successfully marked {updated_count} bookings as Completed.")
+    else:
+        print("No treks needed auto-completion today.")
+        
+    print("--- AUTO-COMPLETE FINISHED ---\n")
+    return f"Processed {updated_count} completions."

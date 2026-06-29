@@ -1,3 +1,5 @@
+import os
+
 from flask import Blueprint, request, jsonify
 from flask_security import auth_required, roles_required, current_user
 from models import db
@@ -5,8 +7,6 @@ from models.trek_models import Trek, Booking
 from datetime import datetime
 from flask import send_file
 from cache import cache
-import os
-import datetime
 from sqlalchemy import func
 
 # Define the blueprint
@@ -21,16 +21,23 @@ def get_open_treks():
     print("Fetching treks from the Database...")
     search = request.args.get('search', '').lower()
     difficulty = request.args.get('difficulty', '')
+    
+    # NEW: Get pagination parameters from the URL, defaulting to page 1 and 6 items per page
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 6, type=int)
 
-    # Base query: Only show 'Open' treks that have available slots
+    # Base query
     query = Trek.query.filter(Trek.status == 'Open', Trek.available_slots > 0)
 
+    # Apply filters
     if search:
         query = query.filter(Trek.name.ilike(f"%{search}%") | Trek.location.ilike(f"%{search}%"))
     if difficulty:
         query = query.filter(Trek.difficulty == difficulty)
 
-    treks = query.all()
+    # NEW: Paginate the query
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    treks = pagination.items # Get just the items for the current page
     
     trek_list = [{
         "id": t.id,
@@ -41,7 +48,13 @@ def get_open_treks():
         "slots": t.available_slots
     } for t in treks]
     
-    return jsonify(trek_list), 200
+    # NEW: Return the list wrapped in a dictionary with the pagination metadata
+    return jsonify({
+        "treks": trek_list,
+        "current_page": pagination.page,
+        "total_pages": pagination.pages,
+        "total_items": pagination.total
+    }), 200
 
 # 2. API to Book a Trek
 @user_bp.route('/api/user/book/<int:trek_id>', methods=['POST'])
@@ -68,6 +81,7 @@ def book_trek(trek_id):
             existing_booking.booking_date = datetime.utcnow()
             trek.available_slots -= 1
             db.session.commit()
+            cache.clear()
         
             return jsonify({"message": "Trek booked successfully!"}), 201
 
@@ -144,13 +158,22 @@ def trigger_export():
 @auth_required('token')
 @roles_required('trekker')
 def export_status(task_id):
-    from celery.result import AsyncResult
-    task_result = AsyncResult(task_id)
+    # FIX 1: Import your specific celery instance, not the generic one
+    from app import celery 
+    
+    # Check the result against YOUR Redis database
+    task_result = celery.AsyncResult(task_id)
     
     if task_result.state == 'SUCCESS':
         # Provide the file download to the user
         file_path = task_result.result
-        return send_file(os.path.join('..', file_path), as_attachment=True)
+        
+        import os
+        absolute_path = os.path.abspath(file_path)
+        
+        # Add max_age=0 to prevent the browser from holding onto this file
+        return send_file(absolute_path, as_attachment=True, max_age=0)
+        
     elif task_result.state == 'FAILURE':
         return jsonify({"status": "Failed"}), 500
     else:
@@ -194,7 +217,7 @@ def public_analytics():
             
     # Sort chronologically and format for the frontend
     sorted_months = sorted(monthly_trends.keys())
-    trend_labels = [datetime.datetime.strptime(m, '%Y-%m').strftime('%b %Y') for m in sorted_months]
+    trend_labels = [datetime.strptime(m, '%Y-%m').strftime('%b %Y') for m in sorted_months]
     trend_data = [monthly_trends[m] for m in sorted_months]
 
     return jsonify({
@@ -211,3 +234,30 @@ def public_analytics():
             "data": trend_data
         }
     }), 200
+
+# 8. API to Fetch Profile Data
+@user_bp.route('/api/user/profile', methods=['GET'])
+@auth_required('token')
+def get_profile():
+    # current_user is provided by Flask-Security
+    return jsonify({
+        "full_name": current_user.full_name or "",
+        "email": current_user.email,
+        "contact": current_user.contact or ""
+    }), 200
+
+# 9. API to Update Profile Data
+@user_bp.route('/api/user/profile', methods=['PUT'])
+@auth_required('token')
+def update_profile():
+    data = request.get_json()
+    
+    # Update the fields if they are provided in the request
+    if 'full_name' in data:
+        current_user.full_name = data['full_name']
+    if 'contact' in data:
+        current_user.contact = data['contact']
+        
+    db.session.commit()
+    
+    return jsonify({"message": "Profile updated successfully!"}), 200

@@ -1,229 +1,129 @@
 <template>
-  <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2>Trekker Dashboard</h2>
-      <button class="btn btn-outline-danger" @click="logout">Logout</button>
-    </div>
-
-    <div v-if="message" class="alert" :class="isError ? 'alert-danger' : 'alert-success'">
-      {{ message }}
-    </div>
-
-    <div class="row">
-      <div class="col-md-7">
-        <div class="card shadow-sm mb-4">
-          <div class="card-header bg-success text-white">Explore Available Treks</div>
-          <div class="card-body bg-light">
-
-            <div class="row mb-3">
-              <div class="col-md-7">
-                <input type="text" class="form-control" placeholder="Search by name or location..."
-                  v-model="searchQuery" @input="fetchOpenTreks">
-              </div>
-              <div class="col-md-5">
-                <select class="form-select" v-model="filterDifficulty" @change="fetchOpenTreks">
-                  <option value="">All Difficulties</option>
-                  <option value="Easy">Easy</option>
-                  <option value="Moderate">Moderate</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="list-group">
-              <div v-for="trek in availableTreks" :key="trek.id"
-                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-2 shadow-sm rounded">
-                <div>
-                  <h5 class="mb-1">{{ trek.name }}</h5>
-                  <p class="mb-1 text-muted"><small>📍 {{ trek.location }} | ⏱️ {{ trek.duration }} days | ⛰️ {{
-                    trek.difficulty }}</small></p>
-                  <small class="text-success fw-bold">{{ trek.slots }} slots left</small>
-                </div>
-                <button class="btn btn-primary" @click="bookTrek(trek.id)">Book Now</button>
-              </div>
-              <div v-if="availableTreks.length === 0" class="text-center py-4 text-muted">
-                No treks match your search criteria right now.
-              </div>
-            </div>
-
-          </div>
-        </div>
+  <div class="d-flex" style="min-height: 100vh; background-color: #f8f9fa;">
+    
+    <div class="bg-white border-end d-flex flex-column" style="width: 260px;">
+      
+      <div class="p-4 border-bottom text-center">
+        <h5 class="text-primary fw-bold mb-0">Trekking App</h5>
       </div>
+      
+      <div class="nav flex-column p-3 flex-grow-1">
+        <router-link to="/user-dashboard/home" class="nav-link mb-2 text-dark px-3 py-2 rounded-3" active-class="active">
+          <span class="me-2">🏠</span> Dashboard
+        </router-link>
+        
+        <router-link to="/user-dashboard/browse" class="nav-link mb-2 text-dark px-3 py-2 rounded-3" active-class="active">
+          <span class="me-2">⛰️</span> Browse Treks
+        </router-link>
+        
+        <router-link to="/user-dashboard/bookings" class="nav-link mb-2 text-dark px-3 py-2 rounded-3" active-class="active">
+          <span class="me-2">📅</span> My Bookings
+        </router-link>
+        
+        <router-link to="/user-dashboard/history" class="nav-link mb-2 text-dark px-3 py-2 rounded-3" active-class="active">
+          <span class="me-2">🧭</span> History
+        </router-link>
+        
+        <router-link to="/user-dashboard/profile" class="nav-link mb-2 text-dark px-3 py-2 rounded-3" active-class="active">
+          <span class="me-2">👤</span> Profile
+        </router-link>
 
-      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-        <span class="mb-0">My Booking History</span>
-        <button class="btn btn-sm btn-outline-light" @click="exportCSV" :disabled="isExporting">
-          {{ isExporting ? 'Generating...' : 'Export CSV' }}
+        <hr class="my-2 text-muted">
+
+        <button class="btn btn-light text-start text-danger fw-bold px-3 py-2 mt-1 rounded-3" @click="logout" style="border: none;">
+          <span class="me-2">🚪</span> Logout
         </button>
       </div>
+    </div>
 
-      <div class="col-md-5">
-        <div class="card shadow-sm">
-          <div class="card-header bg-dark text-white">My Booking History</div>
-          <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Trek</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="booking in myBookings" :key="booking.booking_id">
-                  <td>
-                    <strong>{{ booking.trek_name }}</strong><br>
-                    <small class="text-muted">{{ booking.location }}</small>
-                  </td>
-                  <td>{{ booking.booking_date }}</td>
-                  <td>
-                    <span class="badge"
-                      :class="booking.status === 'Booked' ? 'bg-primary' : (booking.status === 'Completed' ? 'bg-success' : 'bg-danger')">
-                      {{ booking.status }}
-                    </span>
-                  </td>
-                  <td>
-                    <button v-if="booking.status === 'Booked'" class="btn btn-sm btn-outline-danger"
-                      @click="cancelBooking(booking.booking_id)">
-                      Cancel
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="myBookings.length === 0">
-                  <td colspan="4" class="text-center py-4">You haven't booked any treks yet.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+    <div class="flex-grow-1 d-flex flex-column">
+      
+      <div class="bg-white border-bottom px-4 py-3 d-flex justify-content-end align-items-center">
+        <div class="dropdown">
+          <button class="btn btn-light border dropdown-toggle d-flex align-items-center rounded-pill px-3" type="button" data-bs-toggle="dropdown">
+            <span class="me-2">👤</span> {{ fullName }}
+          </button>
+          
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+            <li>
+              <router-link to="/user-dashboard/profile" class="dropdown-item py-2">My Profile</router-link>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <button class="dropdown-item text-danger fw-bold py-2" @click="logout">Logout</button>
+            </li>
+          </ul>
         </div>
       </div>
+
+      <div class="p-4 flex-grow-1 overflow-auto">
+        <router-view></router-view>
+      </div>
+      
     </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios'
+import Swal from 'sweetalert2'
 
 export default {
   data() {
     return {
-      availableTreks: [],
-      myBookings: [],
-      searchQuery: '',
-      filterDifficulty: '',
-      message: '',
-      isError: false,
-      isExporting: false
+      fullName: 'Trekker'
     }
   },
   mounted() {
-    this.fetchOpenTreks()
-    this.fetchMyBookings()
+    this.fetchProfileName()
   },
   methods: {
-    async fetchOpenTreks() {
+    async fetchProfileName() {
       try {
-        const response = await axios.get('http://127.0.0.1:5000/api/user/treks', {
-          params: { search: this.searchQuery, difficulty: this.filterDifficulty }
-        })
-        this.availableTreks = response.data
+        const res = await axios.get('http://127.0.0.1:5000/api/user/profile')
+        if (res.data.full_name) {
+          this.fullName = res.data.full_name
+        }
       } catch (err) {
-        if (err.response?.status === 401) this.logout()
-      }
-    },
-    async fetchMyBookings() {
-      try {
-        const response = await axios.get('http://127.0.0.1:5000/api/user/bookings')
-        this.myBookings = response.data
-      } catch (err) {
-        console.error("Error fetching bookings")
-      }
-    },
-    async bookTrek(trekId) {
-      this.message = ''
-      try {
-        const response = await axios.post(`http://127.0.0.1:5000/api/user/book/${trekId}`)
-        this.isError = false
-        this.message = response.data.message
-
-        // Refresh both lists immediately
-        this.fetchOpenTreks()
-        this.fetchMyBookings()
-
-        setTimeout(() => this.message = '', 4000)
-      } catch (err) {
-        this.isError = true
-        this.message = err.response?.data?.message || 'Error booking trek.'
-      }
-    },
-    async cancelBooking(bookingId) {
-      if (!confirm('Are you sure you want to cancel this booking?')) return;
-
-      try {
-        const response = await axios.put(`http://127.0.0.1:5000/api/user/bookings/${bookingId}/cancel`);
-        this.message = response.data.message;
-        this.isError = false;
-
-        // Refresh both lists to show updated slots and status
-        this.fetchOpenTreks();
-        this.fetchMyBookings();
-
-        setTimeout(() => this.message = '', 3000);
-      } catch (err) {
-        this.isError = true;
-        this.message = 'Error cancelling booking.';
-      }
-    },
-    async exportCSV() {
-      this.isExporting = true;
-      this.message = "Exporting your history... Please wait.";
-      this.isError = false;
-
-      try {
-        // 1. Trigger the background task
-        const response = await axios.post('http://127.0.0.1:5000/api/user/export');
-        const taskId = response.data.task_id;
-
-        // 2. Poll the server every 2 seconds until the file is ready
-        const pollInterval = setInterval(async () => {
-          try {
-            const statusRes = await axios.get(`http://127.0.0.1:5000/api/user/export/status/${taskId}`, {
-              responseType: 'blob' // Important: We are expecting a file back!
-            });
-
-            // If the server sends back a JSON stating it's still processing, it won't be a blob.
-            // If it's a file, the type will be text/csv
-            if (statusRes.headers['content-type'] === 'text/csv; charset=utf-8' || statusRes.data.type === 'text/csv') {
-              clearInterval(pollInterval);
-
-              // Force the browser to download the file
-              const url = window.URL.createObjectURL(new Blob([statusRes.data]));
-              const link = document.createElement('a');
-              link.href = url;
-              link.setAttribute('download', 'My_Trekking_History.csv');
-              document.body.appendChild(link);
-              link.click();
-
-              this.isExporting = false;
-              this.message = "Export completed successfully!";
-              setTimeout(() => this.message = '', 3000);
-            }
-          } catch (pollErr) {
-            // Ignore 202 Processing errors, catch real ones
-          }
-        }, 2000);
-
-      } catch (err) {
-        this.isExporting = false;
-        this.isError = true;
-        this.message = "Failed to start export.";
+        // Fallback to default if API fails
       }
     },
     logout() {
-      localStorage.removeItem('authToken')
-      this.$router.push('/')
+      Swal.fire({
+        title: 'Ready to leave?',
+        text: 'You will need to log in again to access your dashboard.',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545', // Danger Red
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, log me out'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          localStorage.removeItem('authToken')
+          this.$router.push('/')
+        }
+      });
     }
   }
 }
 </script>
+
+<style scoped>
+/* Smooth hover transitions */
+.nav-link {
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+}
+
+/* Subtle hover effect for non-active links */
+.nav-link:hover:not(.active) {
+  background-color: #f8f9fa;
+}
+
+/* The exact styling for the active state to match your mockup */
+.nav-link.active {
+  background-color: #e9efff !important; /* Very light primary blue */
+  color: #0d6efd !important; /* Bootstrap primary text */
+  font-weight: 700;
+}
+</style>
