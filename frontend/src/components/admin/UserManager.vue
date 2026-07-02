@@ -40,7 +40,7 @@
                 <button 
                   class="btn btn-sm" 
                   :class="user.active ? 'btn-outline-danger' : 'btn-outline-success'"
-                  @click="toggleStatus(user.id)"
+                  @click="toggleStatus(user)"
                 >
                   {{ user.active ? 'Blacklist' : 'Whitelist' }}
                 </button>
@@ -67,50 +67,60 @@
 
 <script>
 import axios from 'axios'
+import Swal from 'sweetalert2'
+
+const Toast = Swal.mixin({
+  toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+})
 
 export default {
-  data() {
-    return {
-      userList: [],
-      searchQuery: ''
-    }
-  },
+  data() { return { userList: [], searchQuery: '' } },
   computed: {
     filteredUsers() {
-      // If the search bar is empty, return everyone
       if (!this.searchQuery) return this.userList;
-      
-      const query = this.searchQuery.toLowerCase();
-      
-      // Filter the list based on name, email, or formatted ID
-      return this.userList.filter(user => {
-        const idString = `u${user.id.toString().padStart(3, '0')}`;
-        return (
-          (user.name && user.name.toLowerCase().includes(query)) ||
-          (user.email && user.email.toLowerCase().includes(query)) ||
-          idString.includes(query)
-        );
-      });
+      const q = this.searchQuery.toLowerCase();
+      return this.userList.filter(u => (u.name && u.name.toLowerCase().includes(q)) || (u.email && u.email.toLowerCase().includes(q)));
     }
   },
-  mounted() {
-    this.fetchUsers()
-  },
+  mounted() { this.fetchUsers() },
   methods: {
     async fetchUsers() {
       try {
-        const response = await axios.get('http://127.0.0.1:5000/api/admin/users')
-        this.userList = response.data
+        const token = localStorage.getItem('authToken')
+        const res = await axios.get('http://127.0.0.1:5000/api/admin/users', { 
+          headers: { 'Authentication-Token': token } 
+        })
+        this.userList = res.data
       } catch (err) {
-        console.error("Error fetching users:", err)
+        console.error(err)
       }
     },
-    async toggleStatus(userId) {
-      try {
-        await axios.put(`http://127.0.0.1:5000/api/admin/users/${userId}/toggle-status`)
-        this.fetchUsers() // Refresh list to update UI
-      } catch (err) {
-        console.error("Error toggling user status:", err)
+    async toggleStatus(user) {
+      const actionText = user.active ? 'Blacklist' : 'Whitelist'
+      const actionColor = user.active ? '#dc3545' : '#198754'
+
+      const result = await Swal.fire({
+        title: `Are you sure?`,
+        text: `You are about to ${actionText.toLowerCase()} ${user.name}.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: actionColor,
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: `Yes, ${actionText}!`
+      })
+
+      if (result.isConfirmed) {
+        try {
+          const token = localStorage.getItem('authToken')
+          await axios.put(`http://127.0.0.1:5000/api/admin/users/${user.id}/toggle-status`, {}, { 
+            headers: { 'Authentication-Token': token } 
+          })
+          
+          this.fetchUsers()
+          Toast.fire({ icon: 'success', title: `User has been ${actionText.toLowerCase()}ed.` })
+        } catch (err) {
+          Toast.fire({ icon: 'error', title: 'Action failed.' })
+        }
       }
     }
   }

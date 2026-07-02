@@ -11,7 +11,10 @@
           <i class="bi bi-house-door me-3"></i> Dashboard
         </router-link>
         <router-link to="/admin-dashboard/treks" class="list-group-item list-group-item-action bg-light border-0 py-3">
-          <i class="bi bi-geo-alt me-3"></i> Treks
+          <i class="bi bi-geo-alt me-3"></i> Active Treks
+        </router-link>
+        <router-link to="/admin-dashboard/history" class="list-group-item list-group-item-action bg-light border-0 py-3">
+          <i class="bi bi-clock-history me-3"></i> Trek History
         </router-link>
         <router-link to="/admin-dashboard/staff" class="list-group-item list-group-item-action bg-light border-0 py-3">
           <i class="bi bi-person-badge me-3"></i> Trekking Staff
@@ -47,11 +50,35 @@
 </template>
 
 <script>
+import Swal from 'sweetalert2'
+
 export default {
   methods: {
-    logout() {
-      localStorage.removeItem('authToken')
-      this.$router.push('/')
+    async logout() {
+      // 1. Ask for confirmation
+      const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You will be logged out of your account.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545', // Danger red
+        cancelButtonColor: '#6c757d',  // Secondary gray
+        confirmButtonText: 'Yes, log me out'
+      })
+
+      // 2. If they click "Yes"
+      if (result.isConfirmed) {
+        localStorage.removeItem('authToken')
+        
+        // Optional: Fire a quick toast right before redirecting
+        const Toast = Swal.mixin({
+          toast: true, position: 'top-end', showConfirmButton: false, timer: 1500
+        })
+        Toast.fire({ icon: 'success', title: 'Logged out successfully' })
+        
+        // Redirect to home/login
+        this.$router.push('/')
+      }
     }
   }
 }

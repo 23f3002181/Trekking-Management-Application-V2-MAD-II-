@@ -79,9 +79,8 @@
 
 <script>
 import axios from 'axios';
-// We added 'Line' to our imports
+import Swal from 'sweetalert2'; // NEW: Import SweetAlert
 import { Bar, Pie, Line } from 'vue-chartjs'
-// We added LineElement and PointElement for the Line chart to work
 import { 
   Chart as ChartJS, Title, Tooltip, Legend, BarElement, 
   CategoryScale, LinearScale, ArcElement, LineElement, PointElement
@@ -89,12 +88,17 @@ import {
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, ArcElement, LineElement, PointElement)
 
+// Setup the reusable Toast
+const Toast = Swal.mixin({
+  toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+})
+
 export default {
   name: 'PublicDashboard',
   components: { Bar, Pie, Line },
   data() {
     return {
-      isLoggedIn: false,
+      isLoggedIn: false, 
       loaded: false,
       barChartData: null,
       pieChartData: null,
@@ -102,21 +106,14 @@ export default {
       chartOptions: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom' }
-        }
+        plugins: { legend: { position: 'bottom' } }
       },
-      // Specific options for the line chart to make it look smooth
       lineChartOptions: {
         responsive: true,
         maintainAspectRatio: false,
-        tension: 0.3, // Adds a slight curve to the line
-        plugins: {
-          legend: { position: 'top' }
-        },
-        scales: {
-          y: { beginAtZero: true, ticks: { precision: 0 } } // Ensures whole numbers on Y axis
-        }
+        tension: 0.3, 
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
       }
     }
   },
@@ -124,41 +121,29 @@ export default {
     if (localStorage.getItem('authToken')) {
       this.isLoggedIn = true;
     }
+
     try {
       const response = await axios.get('http://127.0.0.1:5000/api/public/analytics');
       const data = response.data;
 
-      // Populate Bar Chart
       this.barChartData = {
         labels: data.popular_treks.labels,
         datasets: [{
-          label: 'Total Bookings',
-          backgroundColor: '#198754',
-          borderRadius: 4,
-          data: data.popular_treks.data
+          label: 'Total Bookings', backgroundColor: '#198754', borderRadius: 4, data: data.popular_treks.data
         }]
       };
 
-      // Populate Pie Chart
       this.pieChartData = {
         labels: data.trek_status.labels,
         datasets: [{
-          backgroundColor: ['#198754', '#ffc107', '#dc3545', '#0dcaf0', '#6c757d'],
-          borderWidth: 0,
-          data: data.trek_status.data
+          backgroundColor: ['#198754', '#ffc107', '#dc3545', '#0dcaf0', '#6c757d'], borderWidth: 0, data: data.trek_status.data
         }]
       };
 
-      // NEW: Populate Line Chart
       this.lineChartData = {
         labels: data.booking_trends.labels,
         datasets: [{
-          label: 'Trekkers Participated',
-          borderColor: '#0d6efd', // Bootstrap primary blue
-          backgroundColor: 'rgba(13, 110, 253, 0.2)',
-          borderWidth: 3,
-          fill: true,
-          data: data.booking_trends.data
+          label: 'Trekkers Participated', borderColor: '#0d6efd', backgroundColor: 'rgba(13, 110, 253, 0.2)', borderWidth: 3, fill: true, data: data.booking_trends.data
         }]
       };
 
@@ -168,9 +153,24 @@ export default {
     }
   },
   methods: {
-    handleLogout() {
-      localStorage.removeItem('authToken');
-      this.isLoggedIn = false;
+    async handleLogout() {
+      // 1. Ask for confirmation
+      const result = await Swal.fire({
+        title: 'Ready to leave?',
+        text: "You are about to log out of your account.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Logout'
+      })
+
+      // 2. If confirmed, log them out and show Toast
+      if (result.isConfirmed) {
+        localStorage.removeItem('authToken');
+        this.isLoggedIn = false;
+        Toast.fire({ icon: 'success', title: 'Successfully logged out.' });
+      }
     }
   }
 }

@@ -18,6 +18,11 @@ def api_login():
     user = datastore.find_user(email=email)
     
     if user and verify_password(password, user.password):
+        
+        # NEW: Check if the user is blacklisted (active == False)
+        if not user.active:
+            return jsonify({"message": "Your account has been blacklisted. Please contact the administrator."}), 403
+            
         login_user(user)
         role = 'trekker'
         if user.has_role('admin'): role = 'admin'

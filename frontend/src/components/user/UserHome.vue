@@ -5,7 +5,8 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="fw-bold mb-0">Available Treks</h5>
       <div class="d-flex gap-2">
-        <select class="form-select form-select-sm" style="min-width: 130px;" :value="trekStore.filterDifficulty" @change="onFilterChange">
+        <select class="form-select form-select-sm" style="min-width: 130px;" :value="trekStore.filterDifficulty"
+          @change="onFilterChange">
           <option value="">Difficulty: All</option>
           <option value="Easy">Easy</option>
           <option value="Moderate">Moderate</option>
@@ -14,18 +15,21 @@
       </div>
     </div>
 
-    <div class="row g-4 mb-5">
+    <div class="row g-4 mb-2">
       <div class="col-md-4" v-for="trek in availableTreks.slice(0, 3)" :key="trek.id">
         <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dHJla2tpbmd8ZW58MHx8MHx8fDA%3D" class="card-img-top" alt="Trek" style="height: 180px; object-fit: cover;">
+          <img
+            src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dHJla2tpbmd8ZW58MHx8MHx8fDA%3D"
+            class="card-img-top" alt="Trek" style="height: 180px; object-fit: cover;">
           <div class="card-body d-flex flex-column">
             <h5 class="card-title fw-bold mb-3">{{ trek.name }}</h5>
             <p class="text-dark mb-3">{{ trek.location }}</p>
             <p class="text-muted mb-3">{{ trek.difficulty }} : {{ trek.duration }} Days</p>
             <p class="text-dark mb-4">Slots Left: {{ trek.slots }}</p>
-            
+
             <div class="mt-auto">
-              <button v-if="trek.slots > 0" class="btn btn-outline-primary w-100 fw-bold rounded-2 py-2" @click="bookTrek(trek)">
+              <button v-if="trek.slots > 0" class="btn btn-outline-primary w-100 fw-bold rounded-2 py-2"
+                @click="bookTrek(trek)">
                 Book Now
               </button>
               <button v-else class="btn btn-light border w-100 fw-bold text-muted rounded-2 py-2" disabled>
@@ -37,9 +41,17 @@
       </div>
     </div>
 
+    <div class="d-flex justify-content-center mb-3">
+      <router-link to="/user-dashboard/browse" class="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2">
+        Browse All
+        <span aria-hidden="true">&rarr;</span>
+      </router-link>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="fw-bold mb-0">My Bookings</h5>
-      <router-link to="/user-dashboard/bookings" class="text-decoration-none text-primary fw-bold d-flex align-items-center gap-1">
+      <router-link to="/user-dashboard/bookings"
+        class="text-decoration-none text-primary fw-bold d-flex align-items-center gap-1">
         View All Bookings <span aria-hidden="true">&rarr;</span>
       </router-link>
     </div>
@@ -62,7 +74,8 @@
                 <td class="text-dark">{{ booking.booking_date }}</td>
                 <td class="text-dark">{{ booking.status }}</td>
                 <td class="text-end pe-4">
-                  <router-link to="/user-dashboard/bookings" class="btn btn-sm btn-outline-primary fw-bold px-3 py-1 rounded-2">
+                  <router-link to="/user-dashboard/bookings"
+                    class="btn btn-sm btn-outline-primary fw-bold px-3 py-1 rounded-2">
                     View Details
                   </router-link>
                 </td>
@@ -88,8 +101,8 @@ export default {
   // 2. Initialize the store for this component
   setup() {
     const trekStore = useTrekStore();
-    const toast = useToast(); 
-    return { trekStore, toast }; 
+    const toast = useToast();
+    return { trekStore, toast };
   },
   data() {
     return {
@@ -124,12 +137,12 @@ export default {
     async fetchOpenTreks() {
       try {
         const res = await axios.get('http://127.0.0.1:5000/api/user/treks', {
-          params: { 
+          params: {
             // 3. Pull the difficulty filter from Pinia memory
-            difficulty: this.trekStore.filterDifficulty 
+            difficulty: this.trekStore.filterDifficulty
           }
         })
-        this.availableTreks = res.data.treks || res.data 
+        this.availableTreks = res.data.treks || res.data
       } catch (err) {
         console.error("Failed to load treks")
       }
@@ -164,8 +177,8 @@ export default {
         try {
           // Use trek.id for the API call
           await axios.post(`http://127.0.0.1:5000/api/user/book/${trek.id}`)
-          
-          this.toast.success("Trek booked successfully! 🎉")
+
+          this.toast.success("Trek booked successfully!")
           this.fetchOpenTreks()
           this.fetchMyBookings()
         } catch (err) {
@@ -182,6 +195,7 @@ export default {
 .card {
   border: 1px solid #e9ecef !important;
 }
+
 .btn-outline-primary {
   border-width: 1.5px;
 }

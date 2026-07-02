@@ -6,9 +6,11 @@ class Trek(db.Model):
     location = db.Column(db.String(150), nullable=False)
     difficulty = db.Column(db.String(50), nullable=False)
     duration_days = db.Column(db.Integer, nullable=False)
+    total_slots = db.Column(db.Integer, nullable=False, default=0)
     available_slots = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.String(50), default='Open') 
-    
+    start_date = db.Column(db.Date, nullable=True) 
+    end_date = db.Column(db.Date, nullable=True)    
+    status = db.Column(db.String(50), default='Open')  
     assigned_staff_id = db.Column(db.Integer, db.ForeignKey('staff_profile.id'), nullable=True)
     bookings = db.relationship('Booking', backref='trek', lazy=True)
 

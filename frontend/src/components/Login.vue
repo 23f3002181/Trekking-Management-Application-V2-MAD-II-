@@ -97,11 +97,6 @@
               <label class="form-check-label small text-muted" for="rememberMe">Remember me</label>
             </div>
 
-            <div v-if="message" class="alert py-2 small d-flex align-items-center" :class="isError ? 'alert-danger' : 'alert-success'">
-              <i class="bi me-2" :class="isError ? 'bi-exclamation-triangle-fill' : 'bi-check-circle-fill'"></i>
-              {{ message }}
-            </div>
-
             <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mt-2" :disabled="isLoading">
               <span v-if="isLoading" class="spinner-border spinner-border-sm me-2"></span>
               {{ isRegistering ? 'Register' : 'Login' }}
@@ -126,30 +121,29 @@
 
 <script>
 import axios from 'axios'
+import Swal from 'sweetalert2' // 1. Import SweetAlert
+import { useToast } from "vue-toastification"
 
 export default {
   name: 'LoginRegisterScreen',
+  setup() {
+    const toast = useToast(); 
+    return { toast };
+  },
   data() {
     return {
       isRegistering: false,
       isLoading: false,
-      // Form Fields
       fullName: '',
       contactNumber: '',
       email: '',
       password: '',
       confirmPassword: '',
-      // Feedback
-      message: '',
-      isError: false
     }
   },
   methods: {
     toggleMode() {
       this.isRegistering = !this.isRegistering
-      this.message = ''
-      this.isError = false
-      // Clear all fields on toggle
       this.fullName = ''
       this.contactNumber = ''
       this.email = ''
@@ -157,16 +151,12 @@ export default {
       this.confirmPassword = ''
     },
     async handleSubmit() {
-      this.message = ''
-      this.isError = false
       this.isLoading = true
 
       try {
         if (this.isRegistering) {
-          // Frontend Validation: Check if passwords match
           if (this.password !== this.confirmPassword) {
-            this.isError = true
-            this.message = 'Passwords do not match!'
+            this.toast.error('Passwords do not match!') 
             this.isLoading = false
             return
           }
@@ -175,26 +165,37 @@ export default {
           await this.loginUser()
         }
       } catch (err) {
-        this.isError = true
-        // Keep your original error handling style
-        this.message = err.response?.data?.message || (this.isRegistering ? 'Registration failed.' : 'Invalid email or password.')
+        // NEW: Intercept the Blacklist (403) Error
+        if (err.response && err.response.status === 403) {
+          Swal.fire({
+            title: 'Access Denied',
+            text: err.response.data.message || 'Your account has been blacklisted.',
+            icon: 'error',
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Understood'
+          });
+        } 
+        // Standard error toast for wrong passwords or failed registration
+        else {
+          this.toast.error(
+            err.response?.data?.message || 
+            (this.isRegistering ? 'Registration failed.' : 'Invalid email or password.')
+          )
+        }
       } finally {
         this.isLoading = false
       }
     },
     async registerUser() {
-      // Kept your exact API endpoint. 
-      // Note: Added fullName and contactNumber to the payload just in case you update your backend to save them!
       const response = await axios.post('http://127.0.0.1:5000/api/register', {
         email: this.email,
         password: this.password,
         full_name: this.fullName,
         contact: this.contactNumber
       })
-      this.isError = false
-      this.message = response.data.message + ' You can now login.'
       
-      // Auto-switch to login mode after successful registration
+      this.toast.success(response.data.message || 'Registration successful! You can now login.')
+      
       setTimeout(() => {
         this.isRegistering = false
         this.password = ''
@@ -202,13 +203,13 @@ export default {
       }, 1500)
     },
     async loginUser() {
-      // Kept your exact API endpoint and routing logic!
       const response = await axios.post('http://127.0.0.1:5000/api/login', {
         email: this.email,
         password: this.password
       })
       
       localStorage.setItem('authToken', response.data.token)
+      this.toast.success('Login successful!')
       
       const role = response.data.role
       if (role === 'admin') {

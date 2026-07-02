@@ -25,7 +25,7 @@
                         <p class="text-muted small mb-2">{{ trek.location }}</p>
                         <p class="small mb-2">{{ trek.difficulty }} - {{ trek.duration }} Days</p>
                         <p class="small text-danger fw-bold">Slots Left: {{ trek.slots }}</p>
-                        <button class="btn btn-outline-primary w-100" ">View Details</button>
+                        <button @click="bookTrek(trek)" class="btn btn-success w-100 shadow-sm">Book Now</button>
                     </div>
                 </div>
             </div>
@@ -53,18 +53,21 @@
 
 <script>
 import axios from 'axios'
-import { useTrekStore } from '../../stores/trekStore' // Import your new store
+import { useTrekStore } from '../../stores/trekStore'
+import { useToast } from "vue-toastification"
+import Swal from 'sweetalert2'
 
 export default {
     setup() {
         const trekStore = useTrekStore();
-        return { trekStore };
+        const toast = useToast();
+        return { trekStore, toast };
     },
     data() {
         return {
             availableTreks: [],
             totalPages: 1,
-            searchTimeout: null // Used for debouncing
+            searchTimeout: null
         }
     },
     mounted() {
@@ -114,6 +117,29 @@ export default {
             if (pageNumber >= 1 && pageNumber <= this.totalPages) {
                 this.trekStore.setPage(pageNumber);
                 this.fetchOpenTreks();
+            }
+        },
+        async bookTrek(trek) {
+            const result = await Swal.fire({
+                title: `Book ${trek.name}?`,
+                text: `Are you sure you want to reserve a slot for this trek?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#198754', // Success green
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, book it!'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    await axios.post(`http://127.0.0.1:5000/api/user/book/${trek.id}`)
+
+                    this.toast.success("Trek booked successfully!")
+                    // Refresh the list so the available slots decrement instantly
+                    this.fetchOpenTreks()
+                } catch (err) {
+                    this.toast.error(err.response?.data?.message || 'Error booking trek.')
+                }
             }
         }
     }

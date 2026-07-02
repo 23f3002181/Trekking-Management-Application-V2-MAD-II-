@@ -67,7 +67,7 @@
                 </td>
                 <td>
                   <button class="btn btn-sm" :class="staff.active ? 'btn-outline-danger' : 'btn-outline-success'"
-                    @click="toggleStatus(staff.user_id)">
+                    @click="toggleStatus(staff)">
                     {{ staff.active ? 'Blacklist' : 'Whitelist' }}
                   </button>
                 </td>
@@ -87,65 +87,83 @@
 
 <script>
 import axios from 'axios'
+import Swal from 'sweetalert2'
+
+const Toast = Swal.mixin({
+  toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true
+})
 
 export default {
-  data() {
-    return {
-      showForm: false,
-      searchQuery: '',
-      staffList: [],
-      staffForm: { name: '', contact: '', email: '', password: '' },
-      message: ''
-    }
+  data() { 
+    return { 
+      showForm: false, 
+      searchQuery: '', 
+      staffList: [], 
+      staffForm: { name: '', contact: '', email: '', password: '' }
+    } 
   },
   computed: {
     filteredStaff() {
-      // If search is empty, show everyone
       if (!this.searchQuery) return this.staffList;
-
-      const query = this.searchQuery.toLowerCase();
-
-      // Filter by Name OR Email
-      return this.staffList.filter(staff => {
-        return (
-          (staff.name && staff.name.toLowerCase().includes(query)) ||
-          (staff.email && staff.email.toLowerCase().includes(query))
-        );
-      });
+      const q = this.searchQuery.toLowerCase();
+      return this.staffList.filter(s => s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q));
     }
   },
-  mounted() {
-    this.fetchStaff()
-  },
+  mounted() { this.fetchStaff() },
   methods: {
     async fetchStaff() {
       try {
-        const response = await axios.get('http://127.0.0.1:5000/api/admin/staff')
-        this.staffList = response.data
+        const token = localStorage.getItem('authToken')
+        const res = await axios.get('http://127.0.0.1:5000/api/admin/staff', { 
+          headers: { 'Authentication-Token': token } 
+        })
+        this.staffList = res.data
       } catch (err) {
-        console.error("Error fetching staff:", err)
+        console.error(err)
       }
     },
     async createStaff() {
       try {
-        const response = await axios.post('http://127.0.0.1:5000/api/admin/staff', this.staffForm)
-        this.message = response.data.message
+        const token = localStorage.getItem('authToken')
+        const res = await axios.post('http://127.0.0.1:5000/api/admin/staff', this.staffForm, { 
+          headers: { 'Authentication-Token': token } 
+        })
+        
+        Toast.fire({ icon: 'success', title: res.data.message })
+        
         this.staffForm = { name: '', contact: '', email: '', password: '' }
         this.fetchStaff()
-        setTimeout(() => {
-          this.message = ''
-          this.showForm = false
-        }, 2000)
-      } catch (err) {
-        this.message = err.response?.data?.message || 'Error creating staff.'
+        this.showForm = false
+      } catch (err) { 
+        Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Failed to create staff.'})
       }
     },
-    async toggleStatus(userId) {
-      try {
-        await axios.put(`http://127.0.0.1:5000/api/admin/users/${userId}/toggle-status`)
-        this.fetchStaff() // Refresh list to show new status
-      } catch (err) {
-        console.error("Error toggling status:", err)
+    async toggleStatus(staff) {
+      const actionText = staff.active ? 'Blacklist' : 'Whitelist'
+      const actionColor = staff.active ? '#dc3545' : '#198754'
+
+      const result = await Swal.fire({
+        title: `Are you sure?`,
+        text: `You are about to ${actionText.toLowerCase()} ${staff.name}.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: actionColor,
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: `Yes, ${actionText}!`
+      })
+
+      if (result.isConfirmed) {
+        try {
+          const token = localStorage.getItem('authToken')
+          await axios.put(`http://127.0.0.1:5000/api/admin/users/${staff.user_id}/toggle-status`, {}, { 
+            headers: { 'Authentication-Token': token } 
+          })
+          
+          this.fetchStaff()
+          Toast.fire({ icon: 'success', title: `Staff has been ${actionText.toLowerCase()}ed.` })
+        } catch (err) {
+          Toast.fire({ icon: 'error', title: 'Action failed.' })
+        }
       }
     }
   }
