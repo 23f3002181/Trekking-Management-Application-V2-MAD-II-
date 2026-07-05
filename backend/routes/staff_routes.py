@@ -5,6 +5,7 @@ from models.trek_models import Trek, Booking
 from models.user_models import User, StaffProfile
 from cache import cache
 from datetime import datetime
+import pytz
 
 staff_bp = Blueprint('staff_bp', __name__)
 
@@ -118,12 +119,27 @@ def update_trek(trek_id):
         return jsonify({"message": "Unauthorized"}), 403
         
     data = request.get_json()
+    ist = pytz.timezone('Asia/Kolkata')
+    today = datetime.now(ist).date()
     
-    # 1. Update Dates if provided
+    # 1. Update Dates with Strict Validation
     if 'start_date' in data and data['start_date']:
-        trek.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        new_start = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        
+        # Block past dates (unless the trek was already started previously)
+        if new_start < today and trek.status != 'Started':
+            return jsonify({"message": "Start date cannot be in the past."}), 400
+            
+        trek.start_date = new_start
+
     if 'end_date' in data and data['end_date']:
-        trek.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        new_end = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        
+        # Block end dates that occur before the start date
+        if trek.start_date and new_end < trek.start_date:
+            return jsonify({"message": "End date cannot be earlier than the start date."}), 400
+            
+        trek.end_date = new_end
         
     # 2. Update Slots
     if 'total_slots' in data:

@@ -14,6 +14,7 @@
             <tr>
               <th class="ps-4">Trek Name</th>
               <th>Booking Date</th>
+              <th>Trek Dates</th>
               <th>Status</th>
             </tr>
           </thead>
@@ -21,6 +22,7 @@
             <tr v-for="booking in pastBookings" :key="booking.booking_id">
               <td class="fw-bold ps-4">{{ booking.trek_name }}</td>
               <td>{{ booking.booking_date }}</td>
+              <td>{{ booking.start_date }} - {{ booking.end_date }}</td>
               <td>
                 <span class="badge text-dark bg-light border">{{ booking.status }}</span>
               </td>

@@ -18,8 +18,7 @@
         <div class="row g-4">
             <div class="col-md-4" v-for="trek in availableTreks" :key="trek.id">
                 <div class="card h-100 shadow-sm border-0">
-                    <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dHJla2tpbmd8ZW58MHx8MHx8fDA%3D"
-                        class="card-img-top" alt="Trek">
+                    <img :src="trek.image_url" class="card-img-top" alt="Trek" style="height: 180px; object-fit: cover;">
                     <div class="card-body">
                         <h6 class="card-title fw-bold">{{ trek.name }}</h6>
                         <p class="text-muted small mb-2">{{ trek.location }}</p>

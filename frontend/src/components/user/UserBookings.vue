@@ -11,6 +11,7 @@
             <tr>
               <th>Trek Details</th>
               <th>Booking Date</th>
+              <th>Trek Dates</th>
               <th>Status</th>
               <th class="text-end">Actions</th>
             </tr>
@@ -22,6 +23,7 @@
                 <small class="text-muted">📍 {{ booking.location }}</small>
               </td>
               <td>{{ booking.booking_date }}</td>
+              <td>{{ booking.start_date }} - {{ booking.end_date }}</td>
               <td>
                 <span class="badge" 
                       :class="booking.status === 'Booked' ? 'bg-primary' : (booking.status === 'Completed' ? 'bg-success' : 'bg-secondary')">

@@ -45,7 +45,8 @@ def get_open_treks():
         "location": t.location,
         "difficulty": t.difficulty,
         "duration": t.duration_days,
-        "slots": t.available_slots
+        "slots": t.available_slots,
+        "image_url": f"http://127.0.0.1:5000/static/uploads/{t.image_filename}" if t.image_filename else "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&auto=format&fit=crop&q=60"
     } for t in treks]
     
     # NEW: Return the list wrapped in a dictionary with the pagination metadata
@@ -114,9 +115,11 @@ def get_my_bookings():
             "booking_id": b.id,
             "trek_name": trek.name,
             "location": trek.location,
-            "booking_date": b.booking_date.strftime("%Y-%m-%d"),
+            "booking_date": b.booking_date.strftime("%d %b %Y") if b.booking_date else "N/A",
             "status": b.status,
-            "trek_status": trek.status
+            "trek_status": trek.status,
+            "start_date": trek.start_date.strftime("%d %b %Y") if trek.start_date else "TBD",
+            "end_date": trek.end_date.strftime("%d %b %Y") if trek.end_date else "TBD"
         })
         
     return jsonify(history), 200
@@ -179,12 +182,11 @@ def export_status(task_id):
     else:
         return jsonify({"status": "Processing"}), 202
     
-# 7. Public Analytics API
 @user_bp.route('/api/public/analytics', methods=['GET'])
 def public_analytics():
-    # 1. Most Popular Treks (Top 5 by number of bookings)
+    # 1. Update query to include Trek.image_filename (added as the 3rd item)
     popular_treks = db.session.query(
-        Trek.name, func.count(Booking.id)
+        Trek.name, func.count(Booking.id), Trek.image_filename
     ).outerjoin(Booking, Trek.id == Booking.trek_id) \
      .group_by(Trek.id) \
      .order_by(func.count(Booking.id).desc()) \
@@ -192,8 +194,15 @@ def public_analytics():
 
     trek_names = [t[0] for t in popular_treks]
     trek_counts = [t[1] for t in popular_treks]
+    
+    # NEW: Build the image URLs
+    DEFAULT_IMAGE = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&auto=format&fit=crop&q=60"
+    trek_images = [
+        f"http://127.0.0.1:5000/static/uploads/{t[2]}" if t[2] else DEFAULT_IMAGE
+        for t in popular_treks
+    ]
 
-    # 2. Trek Status Distribution
+    # 2. Trek Status Distribution (Keep exactly as is)
     status_counts = db.session.query(
         Trek.status, func.count(Trek.id)
     ).group_by(Trek.status).all()
@@ -201,21 +210,17 @@ def public_analytics():
     statuses = [s[0] for s in status_counts]
     status_values = [s[1] for s in status_counts]
 
-    # 3. NEW: Monthly Booking Trends (Participation Statistics)
-    # Fetch all non-cancelled bookings
+    # 3. Monthly Booking Trends (Keep exactly as is)
     all_bookings = db.session.query(Booking.booking_date).filter(
         Booking.status.in_(['Booked', 'Completed'])
     ).all()
     
     monthly_trends = {}
-    
-    # Group by Year-Month (e.g., '2026-06')
     for b in all_bookings:
         if b.booking_date:
             date_str = b.booking_date.strftime('%Y-%m') 
             monthly_trends[date_str] = monthly_trends.get(date_str, 0) + 1
             
-    # Sort chronologically and format for the frontend
     sorted_months = sorted(monthly_trends.keys())
     trend_labels = [datetime.strptime(m, '%Y-%m').strftime('%b %Y') for m in sorted_months]
     trend_data = [monthly_trends[m] for m in sorted_months]
@@ -223,7 +228,8 @@ def public_analytics():
     return jsonify({
         "popular_treks": {
             "labels": trek_names,
-            "data": trek_counts
+            "data": trek_counts,
+            "images": trek_images  # NEW: Send images in the response
         },
         "trek_status": {
             "labels": statuses,

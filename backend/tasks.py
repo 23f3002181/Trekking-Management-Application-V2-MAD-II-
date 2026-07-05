@@ -24,7 +24,7 @@ def export_booking_history_csv(user_id):
     # Generate the CSV
     with open(filepath, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['Booking ID', 'Trek Name', 'Location', 'Booking Date', 'Status'])
+        writer.writerow(['Booking ID', 'Trek Name', 'Location', 'Booking Date', 'Trek Dates', 'Status'])
         
         for b in bookings:
             trek = Trek.query.get(b.trek_id)
@@ -33,6 +33,7 @@ def export_booking_history_csv(user_id):
                 trek.name, 
                 trek.location, 
                 b.booking_date.strftime("%Y-%m-%d"), 
+                f"{trek.start_date.strftime('%d %b %Y') if trek.start_date else 'TBD'} - {trek.end_date.strftime('%d %b %Y') if trek.end_date else 'TBD'}",
                 b.status
             ])
             
@@ -95,34 +96,3 @@ def send_monthly_report():
     print(f"[SIMULATED EMAIL] Sent to admin@tma.com. Attachment saved at: {filepath}")
     print("--- REPORT GENERATED ---\n")
     return "Monthly Report Generated"
-
-@celery.task
-def auto_complete_treks():
-    print("\n--- RUNNING AUTO-COMPLETE JOB ---")
-    
-    # Fetch all currently active bookings
-    active_bookings = Booking.query.filter_by(status='Booked').all()
-    updated_count = 0
-    
-    for booking in active_bookings:
-        trek = Trek.query.get(booking.trek_id)
-        if trek:
-            # Calculate the end date (booking_date + duration_days)
-            end_date = booking.booking_date + timedelta(days=trek.duration_days)
-            
-            # If today's date is past the end date, complete it!
-            if datetime.utcnow() > end_date:
-                booking.status = 'Completed'
-                # Free up the slot for future trekkers
-                trek.available_slots += 1 
-                updated_count += 1
-                
-    # Commit changes to the database
-    if updated_count > 0:
-        db.session.commit()
-        print(f"Successfully marked {updated_count} bookings as Completed.")
-    else:
-        print("No treks needed auto-completion today.")
-        
-    print("--- AUTO-COMPLETE FINISHED ---\n")
-    return f"Processed {updated_count} completions."

@@ -50,13 +50,13 @@
             <div class="mb-3 row">
               <div class="col-6">
                 <label class="fw-bold mb-1 small text-muted">Start Date</label>
-                <input type="date" class="form-control form-control-sm" v-model="trek.start_date"
+                <input type="date" class="form-control form-control-sm" v-model="trek.start_date" :min="todayDate"
                   :disabled="trek.status === 'Started' || trek.status === 'Completed'">
               </div>
               <div class="col-6">
                 <label class="fw-bold mb-1 small text-muted">End Date</label>
                 <input type="date" class="form-control form-control-sm" v-model="trek.end_date"
-                  :disabled="trek.status === 'Completed'">
+                  :min="trek.start_date || todayDate" :disabled="trek.status === 'Completed'">
               </div>
             </div>
 
@@ -163,6 +163,14 @@ export default {
     // Keeps the active table clean by hiding users who are already completed
     activeParticipants() {
       return this.participants.filter(p => p.status !== 'Completed')
+    },
+    todayDate() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+      const day = String(today.getDate()).padStart(2, '0');
+
+      return `${year}-${month}-${day}`;
     }
   },
   mounted() {
@@ -199,7 +207,14 @@ export default {
     // Helper to get today's date in YYYY-MM-DD format for HTML date inputs
     getTodayDate() {
       const today = new Date();
-      return today.toISOString().split('T')[0];
+
+      const year = today.getFullYear();
+      // getMonth() starts at 0 (January), so we add 1.
+      // padStart(2, '0') ensures we get "07" instead of just "7".
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+
+      return `${year}-${month}-${day}`;
     },
 
     // 1. The linear workflow method to start the trek
@@ -278,7 +293,7 @@ export default {
         }
 
       } catch (err) {
-        this.toast.error('Failed to update trek.')
+        this.toast.error(err.response?.data?.message || "Error updating trek details.")
       }
     }
   }

@@ -6,6 +6,11 @@ from models.user_models import User, StaffProfile
 from models.trek_models import Trek, Booking
 from cache import cache
 import uuid
+import os
+from werkzeug.utils import secure_filename
+
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+DEFAULT_IMAGE = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&auto=format&fit=crop&q=60"
 
 admin_bp = Blueprint('admin_bp', __name__)
 
@@ -15,7 +20,16 @@ admin_bp = Blueprint('admin_bp', __name__)
 @roles_required('admin')
 def manage_treks():
     if request.method == 'POST':
-        data = request.get_json()
+        data = request.form
+        image_file = request.files.get('image')
+        filename = None
+        if image_file:
+            # Secure the filename and save it
+            filename = secure_filename(image_file.filename)
+            # Ensure directory exists
+            os.makedirs(os.path.join(current_app.root_path, UPLOAD_FOLDER), exist_ok=True)
+            image_file.save(os.path.join(current_app.root_path, UPLOAD_FOLDER, filename))
+
         new_trek = Trek(
             name=data.get('name'),
             location=data.get('location'),
@@ -24,6 +38,7 @@ def manage_treks():
             total_slots=data.get('total_slots'),
             available_slots=data.get('total_slots'),
             assigned_staff_id=data.get('staff_id') or None,
+            image_filename=filename, 
             status='Open'
         )
         db.session.add(new_trek)
@@ -38,6 +53,7 @@ def manage_treks():
     for t in treks:
         # Fetch staff name if assigned
         staff = StaffProfile.query.get(t.assigned_staff_id) if t.assigned_staff_id else None
+        image_url = f"http://127.0.0.1:5000/static/uploads/{t.image_filename}" if t.image_filename else DEFAULT_IMAGE
         
         trek_list.append({
             "id": t.id, 
@@ -51,7 +67,8 @@ def manage_treks():
             "staff_name": staff.name if staff else "Unassigned",
             "duration": t.duration_days,
             "start_date": t.start_date.strftime("%d-%m-%Y") if t.start_date else "TBD",
-            "end_date": t.end_date.strftime("%d-%m-%Y") if t.end_date else "TBD"
+            "end_date": t.end_date.strftime("%d-%m-%Y") if t.end_date else "TBD",
+            "image_url": image_url
         })
     
     staff_list = [{"id": s.id, "name": s.name} for s in staff_profiles]
@@ -188,8 +205,16 @@ def get_all_bookings():
 @auth_required('token')
 @roles_required('admin')
 def edit_trek(trek_id):
-    data = request.get_json()
+    data = request.form
     trek = Trek.query.get_or_404(trek_id)
+    
+    # Handle Image Update
+    image_file = request.files.get('image')
+    if image_file:
+        filename = secure_filename(image_file.filename)
+        os.makedirs(os.path.join(current_app.root_path, UPLOAD_FOLDER), exist_ok=True)
+        image_file.save(os.path.join(current_app.root_path, UPLOAD_FOLDER, filename))
+        trek.image_filename = filename
     
     trek.name = data.get('name', trek.name)
     trek.location = data.get('location', trek.location)
@@ -219,10 +244,21 @@ def edit_trek(trek_id):
 def delete_trek(trek_id):
     trek = Trek.query.get_or_404(trek_id)
     
-    # Optional Security Check: Don't allow deletion if bookings exist
-    if Booking.query.filter_by(trek_id=trek.id).first():
-        return jsonify({"message": "Cannot delete trek because bookings exist."}), 400
+    # 1. Check if there are any NON-CANCELLED bookings
+    active_bookings = Booking.query.filter(
+        Booking.trek_id == trek.id,
+        Booking.status != 'Cancelled'
+    ).first()
+
+    # If an active or completed booking exists, block the deletion
+    if active_bookings:
+        return jsonify({"message": "Cannot delete trek because active bookings exist."}), 400
         
+    # 2. If we reach here, all bookings (if any) are 'Cancelled'.
+    # We must delete them first to prevent Database Foreign Key errors.
+    Booking.query.filter_by(trek_id=trek.id).delete()
+    
+    # 3. Safely delete the trek
     db.session.delete(trek)
     db.session.commit()
     cache.clear()

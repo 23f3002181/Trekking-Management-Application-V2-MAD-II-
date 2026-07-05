@@ -1,54 +1,68 @@
 <template>
   <div class="d-flex" style="min-height: 100vh; background-color: #f8f9fa;">
-    
-    <div class="bg-white border-end d-flex flex-column" style="width: 260px;">
-      
-      <div class="p-4 border-bottom text-center">
-        <h5 class="text-primary fw-bold mb-0">Trekking App</h5>
+
+    <div class="bg-light border-end shadow-sm d-flex flex-column" style="width: 220px;">
+      <div class="p-3 text-center border-bottom">
+        <router-link to="/">
+          <span class="glyphicon glyphicon-th-list"><i class="bi bi-list"></i></span>
+        </router-link>
       </div>
-      
+
       <div class="nav flex-column p-3 flex-grow-1">
-        <router-link to="/user-dashboard/home" class="nav-link mb-2 text-dark px-3 py-2 rounded-3" active-class="active">
-          <span class="me-2">🏠</span> Dashboard
+        <router-link to="/user-dashboard/home" class="nav-link mb-1 text-dark px-3 py-2 rounded-3"
+          active-class="active">
+          <span class="me-2"><i class="bi bi-house-door-fill me-2"></i></span> Dashboard
         </router-link>
-        
-        <router-link to="/user-dashboard/browse" class="nav-link mb-2 text-dark px-3 py-2 rounded-3" active-class="active">
-          <span class="me-2">⛰️</span> Browse Treks
+
+        <router-link to="/user-dashboard/browse" class="nav-link mb-1 text-dark px-3 py-2 rounded-3"
+          active-class="active">
+          <span class="me-2"><i class="bi bi-backpack2 me-2"></i></span> Browse Treks
         </router-link>
-        
-        <router-link to="/user-dashboard/bookings" class="nav-link mb-2 text-dark px-3 py-2 rounded-3" active-class="active">
-          <span class="me-2">📅</span> My Bookings
+
+        <router-link to="/user-dashboard/bookings" class="nav-link mb-1 text-dark px-3 py-2 rounded-3"
+          active-class="active">
+          <span class="me-2"><i class="bi bi-calendar-check me-2"></i></span> My Bookings
         </router-link>
-        
-        <router-link to="/user-dashboard/history" class="nav-link mb-2 text-dark px-3 py-2 rounded-3" active-class="active">
-          <span class="me-2">🧭</span> History
+
+        <router-link to="/user-dashboard/history" class="nav-link mb-1 text-dark px-3 py-2 rounded-3"
+          active-class="active">
+          <span class="me-2"><i class="bi bi-clock-history me-2"></i></span> History
         </router-link>
-        
-        <router-link to="/user-dashboard/profile" class="nav-link mb-2 text-dark px-3 py-2 rounded-3" active-class="active">
-          <span class="me-2">👤</span> Profile
+
+        <router-link to="/user-dashboard/profile" class="nav-link mb-1 text-dark px-3 py-2 rounded-3"
+          active-class="active">
+          <span class="me-2"><i class="bi bi-person me-2"></i></span> Profile
         </router-link>
 
         <hr class="my-2 text-muted">
 
-        <button class="btn btn-light text-start text-danger fw-bold px-3 py-2 mt-1 rounded-3" @click="logout" style="border: none;">
-          <span class="me-2">🚪</span> Logout
+        <button class="btn btn-light text-start text-danger fw-bold px-3 py-2 mt-1 rounded-3" @click="logout"
+          style="border: none;">
+          <span class="me-2"><i class="bi bi-box-arrow-right me-2"></i></span> Logout
         </button>
       </div>
     </div>
 
     <div class="flex-grow-1 d-flex flex-column">
-      
-      <div class="bg-white border-bottom px-4 py-3 d-flex justify-content-end align-items-center">
+
+      <div class="bg-light border-bottom px-4 py-2 d-flex justify-content-between align-items-center">
+        <h4 class="fw-bold mb-0 py-0 fs-3 text-black">
+          Trekking Management Application
+        </h4>
         <div class="dropdown">
-          <button class="btn btn-light border dropdown-toggle d-flex align-items-center rounded-pill px-3" type="button" data-bs-toggle="dropdown">
-            <span class="me-2">👤</span> {{ fullName }}
+          <button class="btn bg-white border shadow-sm dropdown-toggle d-flex align-items-center rounded-pill px-4 py-1"
+            type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-person-circle fs-5 me-2"></i>
+            <span class="fw-normal fs-5">{{ fullName }}</span>
           </button>
-          
+
           <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
             <li>
               <router-link to="/user-dashboard/profile" class="dropdown-item py-2">My Profile</router-link>
             </li>
-            <li><hr class="dropdown-divider"></li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
             <li>
               <button class="dropdown-item text-danger fw-bold py-2" @click="logout">Logout</button>
             </li>
@@ -56,10 +70,10 @@
         </div>
       </div>
 
-      <div class="p-4 flex-grow-1 overflow-auto">
+      <div class="p-5 bg-white flex-grow-1 overflow-auto">
         <router-view></router-view>
       </div>
-      
+
     </div>
   </div>
 </template>
@@ -117,13 +131,18 @@ export default {
 
 /* Subtle hover effect for non-active links */
 .nav-link:hover:not(.active) {
-  background-color: #f8f9fa;
+  background-color: #f5f6fa;
 }
 
 /* The exact styling for the active state to match your mockup */
 .nav-link.active {
-  background-color: #e9efff !important; /* Very light primary blue */
-  color: #0d6efd !important; /* Bootstrap primary text */
-  font-weight: 700;
+  background: #dce8ff;
+  color: #0d6efd !important;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.nav-link:hover {
+  background: #eef3ff;
 }
 </style>

@@ -18,9 +18,7 @@
     <div class="row g-4 mb-2">
       <div class="col-md-4" v-for="trek in availableTreks.slice(0, 3)" :key="trek.id">
         <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden">
-          <img
-            src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8dHJla2tpbmd8ZW58MHx8MHx8fDA%3D"
-            class="card-img-top" alt="Trek" style="height: 180px; object-fit: cover;">
+          <img :src="trek.image_url" class="card-img-top" alt="Trek" style="height: 180px; object-fit: cover;">
           <div class="card-body d-flex flex-column">
             <h5 class="card-title fw-bold mb-3">{{ trek.name }}</h5>
             <p class="text-dark mb-3">{{ trek.location }}</p>
@@ -64,6 +62,7 @@
               <tr>
                 <th class="py-3 text-start ps-4 fw-semibold">Trek Name</th>
                 <th class="py-3 fw-semibold">Booking Date</th>
+                <th class="py-3 fw-semibold">Trek Dates</th>
                 <th class="py-3 fw-semibold">Status</th>
                 <th class="py-3 text-end pe-4 fw-semibold">Action</th>
               </tr>
@@ -72,6 +71,7 @@
               <tr v-for="booking in activeBookings" :key="booking.booking_id" class="border-bottom">
                 <td class="text-start ps-4 fw-semibold text-dark">{{ booking.trek_name }}</td>
                 <td class="text-dark">{{ booking.booking_date }}</td>
+                <td class="text-dark">{{ booking.start_date }} - {{ booking.end_date }}</td>
                 <td class="text-dark">{{ booking.status }}</td>
                 <td class="text-end pe-4">
                   <router-link to="/user-dashboard/bookings"

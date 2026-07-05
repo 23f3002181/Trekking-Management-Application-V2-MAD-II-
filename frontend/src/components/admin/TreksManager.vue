@@ -47,6 +47,10 @@
                 </option>
               </select>
             </div>
+            <div class="col-md-12 mb-3">
+              <label>Trek Image</label>
+              <input type="file" class="form-control" @change="handleFileUpload" accept="image/*">
+            </div>
           </div>
           <button type="submit" class="btn mt-3" :class="isEditing ? 'btn-warning' : 'btn-primary'">
             {{ isEditing ? 'Update Trek' : 'Create Trek' }}
@@ -60,8 +64,9 @@
         <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
         <input type="text" class="form-control ps-5" placeholder="Search treks..." v-model="searchQuery">
       </div>
-      
-      <div v-if="toastMsg" class="alert alert-info py-2 shadow-sm border-0 position-absolute" style="top: 20px; right: 20px; z-index: 1050;">
+
+      <div v-if="toastMsg" class="alert alert-info py-2 shadow-sm border-0 position-absolute"
+        style="top: 20px; right: 20px; z-index: 1050;">
         <i class="bi bi-check-circle-fill me-2 text-success"></i> {{ toastMsg }}
       </div>
 
@@ -78,7 +83,8 @@
                 <th>Available Slots</th>
                 <th>Status</th>
                 <th>Assigned Staff</th>
-                <th>Actions</th> </tr>
+                <th>Actions</th>
+              </tr>
             </thead>
             <tbody>
               <tr v-for="trek in filteredTreks" :key="trek.id">
@@ -89,10 +95,12 @@
                 <td>{{ trek.total_slots }}</td>
                 <td>{{ trek.available_slots }}</td>
                 <td>
-                  <span class="badge" :class="trek.status === 'Open' ? 'bg-success' : 'bg-secondary'">{{ trek.status }}</span>
+                  <span class="badge" :class="trek.status === 'Open' ? 'bg-success' : 'bg-secondary'">{{ trek.status
+                  }}</span>
                 </td>
                 <td>
-                  <select class="form-select form-select-sm" v-model="trek.staff_id" @change="assignStaff(trek.id, trek.staff_id)">
+                  <select class="form-select form-select-sm" v-model="trek.staff_id"
+                    @change="assignStaff(trek.id, trek.staff_id)">
                     <option :value="null">-- Unassigned --</option>
                     <option v-for="staff in staffList" :key="staff.id" :value="staff.id">
                       {{ staff.name }}
@@ -140,12 +148,13 @@ const Toast = Swal.mixin({
 export default {
   data() {
     return {
-      showForm: false, 
+      showForm: false,
       isEditing: false, // NEW: Tracks if we are editing
       editingTrekId: null, // NEW: Tracks WHICH trek we are editing
-      searchQuery: '', 
-      trekList: [], 
-      staffList: [], 
+      searchQuery: '',
+      trekList: [],
+      staffList: [],
+      selectedFile: null,
       toastMsg: '', // Keeping your original toastMsg variable active
       trekForm: { name: '', location: '', difficulty: 'Moderate', duration: 1, total_slots: 10, available_slots: 10, staff_id: '' }
     }
@@ -154,15 +163,15 @@ export default {
     filteredTreks() {
       // Filter out completed treks FIRST
       let activeTreks = this.trekList.filter(t => t.status !== 'Completed');
-      
+
       if (!this.searchQuery) return activeTreks;
-      
+
       const q = this.searchQuery.toLowerCase();
       return activeTreks.filter(t => t.name.toLowerCase().includes(q) || t.location.toLowerCase().includes(q));
     }
   },
-  mounted() { 
-    this.fetchTreks() 
+  mounted() {
+    this.fetchTreks()
   },
   methods: {
     // NEW: Safely handles toggling the form and clearing data
@@ -172,17 +181,22 @@ export default {
         this.resetForm();
       }
     },
+    // NEW: Capture the file when selected
+    handleFileUpload(event) {
+      this.selectedFile = event.target.files[0];
+    },
     // NEW: Clears form data back to default
     resetForm() {
       this.isEditing = false;
       this.editingTrekId = null;
+      this.selectedFile = null;
       this.trekForm = { name: '', location: '', difficulty: 'Moderate', duration: 1, total_slots: 10, available_slots: 10, staff_id: '' };
     },
     async fetchTreks() {
       try {
         const token = localStorage.getItem('authToken')
-        const res = await axios.get('http://127.0.0.1:5000/api/admin/treks', { 
-          headers: { 'Authentication-Token': token } 
+        const res = await axios.get('http://127.0.0.1:5000/api/admin/treks', {
+          headers: { 'Authentication-Token': token }
         })
         this.trekList = res.data.treks
         this.staffList = res.data.staff
@@ -193,15 +207,30 @@ export default {
     async createTrek() {
       try {
         const token = localStorage.getItem('authToken')
-        const res = await axios.post('http://127.0.0.1:5000/api/admin/treks', this.trekForm, { 
-          headers: { 'Authentication-Token': token } 
+
+        // Build FormData instead of JSON
+        const formData = new FormData();
+        formData.append('name', this.trekForm.name);
+        formData.append('location', this.trekForm.location);
+        formData.append('difficulty', this.trekForm.difficulty);
+        formData.append('duration', this.trekForm.duration);
+        formData.append('total_slots', this.trekForm.total_slots);
+        formData.append('staff_id', this.trekForm.staff_id || '');
+
+        if (this.selectedFile) {
+          formData.append('image', this.selectedFile);
+        }
+
+        // Axios will automatically set the correct multipart/form-data headers when you pass a FormData object
+        const res = await axios.post('http://127.0.0.1:5000/api/admin/treks', formData, {
+          headers: { 'Authentication-Token': token }
         })
-        
+
         Toast.fire({ icon: 'success', title: res.data.message })
         this.resetForm()
         this.fetchTreks()
-        this.showForm = false 
-      } catch (err) { 
+        this.showForm = false
+      } catch (err) {
         Toast.fire({ icon: 'error', title: 'Failed to create Trek route.' })
       }
     },
@@ -224,15 +253,28 @@ export default {
     async updateTrek() {
       try {
         const token = localStorage.getItem('authToken')
-        await axios.put(`http://127.0.0.1:5000/api/admin/treks/${this.editingTrekId}`, this.trekForm, { 
-          headers: { 'Authentication-Token': token } 
+
+        // Build FormData instead of JSON
+        const formData = new FormData();
+        formData.append('name', this.trekForm.name);
+        formData.append('location', this.trekForm.location);
+        formData.append('difficulty', this.trekForm.difficulty);
+        formData.append('duration', this.trekForm.duration);
+        formData.append('total_slots', this.trekForm.total_slots);
+        formData.append('staff_id', this.trekForm.staff_id || '');
+
+        if (this.selectedFile) {
+          formData.append('image', this.selectedFile);
+        }
+        await axios.put(`http://127.0.0.1:5000/api/admin/treks/${this.editingTrekId}`, formData, {
+          headers: { 'Authentication-Token': token }
         })
-        
+
         Toast.fire({ icon: 'success', title: 'Trek updated successfully!' })
         this.resetForm()
         this.fetchTreks()
-        this.showForm = false 
-      } catch (err) { 
+        this.showForm = false
+      } catch (err) {
         Toast.fire({ icon: 'error', title: 'Failed to update trek.' })
       }
     },
@@ -251,10 +293,10 @@ export default {
       if (result.isConfirmed) {
         try {
           const token = localStorage.getItem('authToken')
-          await axios.delete(`http://127.0.0.1:5000/api/admin/treks/${trek.id}`, { 
-            headers: { 'Authentication-Token': token } 
+          await axios.delete(`http://127.0.0.1:5000/api/admin/treks/${trek.id}`, {
+            headers: { 'Authentication-Token': token }
           })
-          
+
           Toast.fire({ icon: 'success', title: 'Trek deleted successfully.' })
           this.fetchTreks()
         } catch (err) {
@@ -265,8 +307,8 @@ export default {
     async assignStaff(trekId, staffId) {
       try {
         const token = localStorage.getItem('authToken')
-        await axios.put(`http://127.0.0.1:5000/api/admin/treks/${trekId}/assign`, 
-          { staff_id: staffId }, 
+        await axios.put(`http://127.0.0.1:5000/api/admin/treks/${trekId}/assign`,
+          { staff_id: staffId },
           { headers: { 'Authentication-Token': token } }
         )
         Toast.fire({ icon: 'success', title: 'Staff assigned successfully!' })

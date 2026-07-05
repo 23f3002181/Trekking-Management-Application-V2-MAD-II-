@@ -1,11 +1,5 @@
 <template>
   <div id="app">
-    <nav class="navbar navbar-dark bg-dark mb-4">
-      <div class="container-fluid">
-        <span class="navbar-brand mb-0 h1">Trekking Management Application</span>
-      </div>
-    </nav>
-
     <router-view></router-view>
   </div>
 </template>

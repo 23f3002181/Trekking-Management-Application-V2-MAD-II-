@@ -13,6 +13,7 @@ class Trek(db.Model):
     status = db.Column(db.String(50), default='Open')  
     assigned_staff_id = db.Column(db.Integer, db.ForeignKey('staff_profile.id'), nullable=True)
     bookings = db.relationship('Booking', backref='trek', lazy=True)
+    image_filename = db.Column(db.String(255), nullable=True)
 
 class Booking(db.Model):
     id = db.Column(db.Integer, primary_key=True)
