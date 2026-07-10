@@ -4,7 +4,6 @@ from flask_security.utils import hash_password
 from models import db
 import uuid
 
-# Define the Blueprint
 auth_bp = Blueprint('auth_bp', __name__)
 
 @auth_bp.route('/api/login', methods=['POST'])
@@ -12,14 +11,11 @@ def api_login():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
-
-    # Access the user datastore from the current running app
     datastore = current_app.extensions['security'].datastore
     user = datastore.find_user(email=email)
     
     if user and verify_password(password, user.password):
-        
-        # NEW: Check if the user is blacklisted (active == False)
+        # blacklist check
         if not user.active:
             return jsonify({"message": "Your account has been blacklisted. Please contact the administrator."}), 403
             

@@ -82,6 +82,12 @@
         </div>
       </div>
     </div>
+    <div class="alert alert-primary d-inline-flex align-items-center" role="alert">
+      <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+      <div>
+        Blacklisted staff cannot login.
+      </div>
+    </div>
   </div>
 </template>
 

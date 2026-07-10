@@ -99,7 +99,7 @@ export default {
           this.fullName = res.data.full_name
         }
       } catch (err) {
-        // Fallback to default if API fails
+
       }
     },
     logout() {
@@ -108,7 +108,7 @@ export default {
         text: 'You will need to log in again to access your dashboard.',
         icon: 'info',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545', // Danger Red
+        confirmButtonColor: '#dc3545',
         cancelButtonColor: '#6c757d',
         confirmButtonText: 'Yes, log me out'
       }).then((result) => {
@@ -123,18 +123,15 @@ export default {
 </script>
 
 <style scoped>
-/* Smooth hover transitions */
+
 .nav-link {
   transition: all 0.2s ease-in-out;
   font-weight: 500;
 }
-
-/* Subtle hover effect for non-active links */
 .nav-link:hover:not(.active) {
   background-color: #f5f6fa;
 }
 
-/* The exact styling for the active state to match your mockup */
 .nav-link.active {
   background: #dce8ff;
   color: #0d6efd !important;

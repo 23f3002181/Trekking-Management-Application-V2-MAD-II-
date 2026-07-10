@@ -1,3 +1,4 @@
-Booking ID,Trek Name,Location,Booking Date,Status
-1,Annapurna Base Camp,Nepal,2026-06-29,Cancelled
-2,Khaliya Top,"Munsyari, Pithoragarh, Uttrakhand",2026-06-29,Completed
+Booking ID,Trek Name,Location,Booking Date,Trek Dates,Status
+1,Kedarkantha,Uttarakhand,2026-07-09,22 Dec 2026 - 28 Dec 2026,Cancelled
+3,Goechala,Sikkhim,2026-07-06,06 Jul 2026 - 06 Jul 2026,Completed
+4,Valley of Flowers,Uttarakhand,2026-07-09,16 Jul 2026 - TBD,Booked

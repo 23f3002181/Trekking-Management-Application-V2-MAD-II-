@@ -107,7 +107,6 @@ export default {
   },
   computed: {
     filteredHistory() {
-      // ONLY show Completed treks
       let historyTreks = this.trekList.filter(t => t.status === 'Completed');
       
       if (!this.searchQuery) return historyTreks;
@@ -139,7 +138,7 @@ export default {
           headers: { 'Authentication-Token': token }
         })
         this.participants = res.data;
-        this.viewingParticipants = true; // Swap the view!
+        this.viewingParticipants = true; 
       } catch (err) {
         Swal.fire({
           icon: 'error',

@@ -149,19 +149,18 @@ export default {
   data() {
     return {
       showForm: false,
-      isEditing: false, // NEW: Tracks if we are editing
-      editingTrekId: null, // NEW: Tracks WHICH trek we are editing
+      isEditing: false, 
+      editingTrekId: null, 
       searchQuery: '',
       trekList: [],
       staffList: [],
       selectedFile: null,
-      toastMsg: '', // Keeping your original toastMsg variable active
+      toastMsg: '', 
       trekForm: { name: '', location: '', difficulty: 'Moderate', duration: 1, total_slots: 10, available_slots: 10, staff_id: '' }
     }
   },
   computed: {
     filteredTreks() {
-      // Filter out completed treks FIRST
       let activeTreks = this.trekList.filter(t => t.status !== 'Completed');
 
       if (!this.searchQuery) return activeTreks;
@@ -174,18 +173,15 @@ export default {
     this.fetchTreks()
   },
   methods: {
-    // NEW: Safely handles toggling the form and clearing data
     toggleForm() {
       this.showForm = !this.showForm;
       if (!this.showForm) {
         this.resetForm();
       }
     },
-    // NEW: Capture the file when selected
     handleFileUpload(event) {
       this.selectedFile = event.target.files[0];
     },
-    // NEW: Clears form data back to default
     resetForm() {
       this.isEditing = false;
       this.editingTrekId = null;
@@ -207,8 +203,6 @@ export default {
     async createTrek() {
       try {
         const token = localStorage.getItem('authToken')
-
-        // Build FormData instead of JSON
         const formData = new FormData();
         formData.append('name', this.trekForm.name);
         formData.append('location', this.trekForm.location);
@@ -221,7 +215,6 @@ export default {
           formData.append('image', this.selectedFile);
         }
 
-        // Axios will automatically set the correct multipart/form-data headers when you pass a FormData object
         const res = await axios.post('http://127.0.0.1:5000/api/admin/treks', formData, {
           headers: { 'Authentication-Token': token }
         })
@@ -234,7 +227,6 @@ export default {
         Toast.fire({ icon: 'error', title: 'Failed to create Trek route.' })
       }
     },
-    // NEW: Prepares the form for editing an existing trek
     editTrek(trek) {
       this.isEditing = true;
       this.editingTrekId = trek.id;
@@ -242,19 +234,16 @@ export default {
         name: trek.name,
         location: trek.location,
         difficulty: trek.difficulty,
-        duration: trek.duration, // Relies on backend sending this
+        duration: trek.duration,
         available_slots: trek.available_slots,
         total_slots: trek.total_slots,
         staff_id: trek.staff_id || ''
       };
       this.showForm = true;
     },
-    // NEW: Submits the updated data
     async updateTrek() {
       try {
         const token = localStorage.getItem('authToken')
-
-        // Build FormData instead of JSON
         const formData = new FormData();
         formData.append('name', this.trekForm.name);
         formData.append('location', this.trekForm.location);
@@ -278,7 +267,6 @@ export default {
         Toast.fire({ icon: 'error', title: 'Failed to update trek.' })
       }
     },
-    // NEW: Handles trek deletion with SweetAlert confirmation
     async deleteTrek(trek) {
       const result = await Swal.fire({
         title: 'Delete this trek?',

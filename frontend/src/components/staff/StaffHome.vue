@@ -1,7 +1,5 @@
 <template>
-  <div>
-    <h2 class="mb-4">My Dashboard</h2>
-    
+  <div>    
     <div class="row mb-5">
       <div class="col-md-4">
         <div class="card shadow-sm border-0 text-center py-3">

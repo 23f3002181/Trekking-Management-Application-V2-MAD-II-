@@ -56,10 +56,10 @@
       </div>
     </div>
     
-    <div class="alert alert-primary d-flex align-items-center" role="alert">
+    <div class="alert alert-primary d-inline-flex align-items-center" role="alert">
       <i class="bi bi-info-circle-fill me-2 fs-5"></i>
       <div>
-        Blacklisted users cannot login or book treks.
+        Blacklisted users cannot login.
       </div>
     </div>
   </div>

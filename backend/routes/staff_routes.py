@@ -12,7 +12,7 @@ staff_bp = Blueprint('staff_bp', __name__)
 def get_staff_profile():
     return StaffProfile.query.filter_by(user_id=current_user.id).first()
 
-# 1. API for Dashboard Stats (Screen 8 Top Cards)
+# Dashboard Stats
 @staff_bp.route('/api/staff/stats', methods=['GET'])
 @auth_required('token')
 @roles_required('staff')
@@ -34,7 +34,7 @@ def get_staff_stats():
         "ongoing_treks": ongoing_treks_count
     }), 200
 
-# 2. API to get Treks list (Screen 8 Table)
+# Treks list
 @staff_bp.route('/api/staff/treks', methods=['GET'])
 @auth_required('token')
 @roles_required('staff')
@@ -59,7 +59,7 @@ def get_assigned_treks():
         })
     return jsonify(trek_list), 200
 
-# 3. API to get a single Trek's details (Screen 9 Left Side)
+# Single Trek's details
 @staff_bp.route('/api/staff/treks/<int:trek_id>', methods=['GET'])
 @auth_required('token')
 @roles_required('staff')
@@ -78,12 +78,11 @@ def get_single_trek(trek_id):
         "total_slots": trek.total_slots,
         "available_slots": trek.available_slots,
         "status": trek.status,
-        # Format as YYYY-MM-DD for HTML date inputs
         "start_date": trek.start_date.strftime("%Y-%m-%d") if trek.start_date else "",
         "end_date": trek.end_date.strftime("%Y-%m-%d") if trek.end_date else ""
     }), 200
 
-# 4. API to view registered participants (Screen 9 Right Side)
+# view registered participants
 @staff_bp.route('/api/staff/treks/<int:trek_id>/participants', methods=['GET'])
 @auth_required('token')
 @roles_required('staff')
@@ -107,7 +106,7 @@ def get_participants(trek_id):
         })
     return jsonify(participants), 200
 
-# 5. API to update Trek Status and Slots
+# update trek details
 @staff_bp.route('/api/staff/treks/<int:trek_id>', methods=['PUT'])
 @auth_required('token')
 @roles_required('staff')
@@ -121,34 +120,27 @@ def update_trek(trek_id):
     data = request.get_json()
     ist = pytz.timezone('Asia/Kolkata')
     today = datetime.now(ist).date()
-    
-    # 1. Update Dates with Strict Validation
+
     if 'start_date' in data and data['start_date']:
         new_start = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
-        
-        # Block past dates (unless the trek was already started previously)
         if new_start < today and trek.status != 'Started':
-            return jsonify({"message": "Start date cannot be in the past."}), 400
-            
+            return jsonify({"message": "Start date cannot be in the past."}), 400 
         trek.start_date = new_start
 
     if 'end_date' in data and data['end_date']:
         new_end = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
-        
-        # Block end dates that occur before the start date
+
         if trek.start_date and new_end < trek.start_date:
             return jsonify({"message": "End date cannot be earlier than the start date."}), 400
             
         trek.end_date = new_end
         
-    # 2. Update Slots
     if 'total_slots' in data:
         new_total = int(data['total_slots'])
         booked_count = Booking.query.filter_by(trek_id=trek.id, status='Booked').count()
         trek.total_slots = new_total
         trek.available_slots = new_total - booked_count
 
-    # 3. Update Status
     if 'status' in data:
         trek.status = data['status']
         if trek.status == 'Completed':
@@ -162,27 +154,20 @@ def update_trek(trek_id):
         "available_slots": trek.available_slots
     }), 200
 
-# 6. API for Completed Bookings History (Independent of Trek Status)
+# Completed Bookings
 @staff_bp.route('/api/staff/history', methods=['GET'])
 @auth_required('token')
 @roles_required('staff')
 def get_staff_history():
-    # 1. Get the current staff member
     staff_profile = StaffProfile.query.filter_by(user_id=current_user.id).first()
     if not staff_profile:
         return jsonify({"message": "Unauthorized"}), 403
-
-    # 2. Find all treks assigned to this staff
     treks = Trek.query.filter_by(assigned_staff_id=staff_profile.id).all()
     trek_ids = [t.id for t in treks]
-
-    # 3. Fetch ONLY 'Completed' bookings for these specific treks
     completed_bookings = Booking.query.filter(
         Booking.trek_id.in_(trek_ids), 
         Booking.status == 'Completed'
     ).all()
-
-    # 4. Format the response
     history = []
     for b in completed_bookings:
         user = User.query.get(b.user_id)

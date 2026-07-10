@@ -27,26 +27,26 @@ app.config['SECURITY_PASSWORD_HASH'] = 'bcrypt'
 #CACHE CONFIGURATION
 app.config['CACHE_TYPE'] = 'RedisCache'
 app.config['CACHE_REDIS_URL'] = 'redis://localhost:6379/0'
-app.config['CACHE_DEFAULT_TIMEOUT'] = 60 # Cache expires after 60 seconds
+app.config['CACHE_DEFAULT_TIMEOUT'] = 60 
 cache.init_app(app)
 
 def make_celery(app):
     celery = Celery(app.import_name, broker='redis://localhost:6379/0', backend='redis://localhost:6379/0')
 
-    # --- BEAT SCHEDULE CONFIGURATION ---
+    # BEAT SCHEDULE
     celery.conf.beat_schedule = {
         'daily-reminder-test': {
             'task': 'tasks.send_daily_reminders',
-            'schedule': 60.0, # RUNS EVERY 60 SECONDS (For testing!)
+            'schedule': 60.0, 
         },
         'monthly-report-test': {
             'task': 'tasks.send_monthly_report',
-            'schedule': 120.0, # RUNS EVERY 120 SECONDS (For testing!)
+            'schedule': 120.0, 
         },
         'auto-complete-treks-midnight': {
             'task': 'tasks.auto_complete_treks',
             #'schedule': crontab(hour=0, minute=0),Runs every night at midnight UTC
-            'schedule': 90.0, # test it every 90 seconds!
+            'schedule': 90.0, # every 90 seconds for testing
         }
     }
     celery.conf.timezone = 'UTC'
@@ -59,8 +59,7 @@ def make_celery(app):
     return celery
 
 celery = make_celery(app)
-        
-# API Auth Configs
+
 app.config['SECURITY_TOKEN_AUTHENTICATION_HEADER'] = 'Authentication-Token'
 app.config['SECURITY_TOKEN_MAX_AGE'] = 3600 
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False 
@@ -69,17 +68,16 @@ app.config['SECURITY_CSRF_IGNORE_UNAUTH_ENDPOINTS'] = True
 app.config['SECURITY_REGISTERABLE'] = True
 app.config['SECURITY_SEND_REGISTER_EMAIL'] = False 
 
-# Initialize DB and Security
 db.init_app(app)
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 security = Security(app, user_datastore)
 
-# Register Blueprints
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(staff_bp)
 app.register_blueprint(user_bp)
-# Programmatic Database Initialization
+
+# Initialize the database and create an admin user
 with app.app_context():
     db.create_all()
     

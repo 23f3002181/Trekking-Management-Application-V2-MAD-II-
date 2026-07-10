@@ -18,11 +18,15 @@
         <div class="row g-4">
             <div class="col-md-4" v-for="trek in availableTreks" :key="trek.id">
                 <div class="card h-100 shadow-sm border-0">
-                    <img :src="trek.image_url" class="card-img-top" alt="Trek" style="height: 180px; object-fit: cover;">
+                    <img :src="trek.image_url" class="card-img-top" alt="Trek"
+                        style="height: 180px; object-fit: cover;">
                     <div class="card-body">
                         <h6 class="card-title fw-bold">{{ trek.name }}</h6>
                         <p class="text-muted small mb-2">{{ trek.location }}</p>
                         <p class="small mb-2">{{ trek.difficulty }} - {{ trek.duration }} Days</p>
+                        <p class="text-dark small mb-3 fw-semibold">
+                            <i class="bi bi-calendar3 me-1"></i> {{ trek.start_date }} - {{ trek.end_date }}
+                        </p>
                         <p class="small text-danger fw-bold">Slots Left: {{ trek.slots }}</p>
                         <button @click="bookTrek(trek)" class="btn btn-success w-100 shadow-sm">Book Now</button>
                     </div>
@@ -70,7 +74,6 @@ export default {
         }
     },
     mounted() {
-        // When the component loads, it will use whatever is saved in the store!
         this.fetchOpenTreks()
     },
     methods: {
@@ -78,7 +81,6 @@ export default {
             try {
                 const res = await axios.get('http://127.0.0.1:5000/api/user/treks', {
                     params: {
-                        // Pull parameters directly from Pinia memory
                         search: this.trekStore.searchQuery,
                         difficulty: this.trekStore.filterDifficulty,
                         page: this.trekStore.currentPage,
@@ -92,16 +94,9 @@ export default {
                 console.error("Error fetching treks", err)
             }
         },
-
-        // THE DEBOUNCED SEARCH
         onSearchInput(event) {
-            // 1. Update the store memory
             this.trekStore.updateSearch(event.target.value);
-
-            // 2. Clear the previous timer if they are still typing
             clearTimeout(this.searchTimeout);
-
-            // 3. Set a new timer to wait 400ms before calling the backend
             this.searchTimeout = setTimeout(() => {
                 this.fetchOpenTreks();
             }, 400);
@@ -124,7 +119,7 @@ export default {
                 text: `Are you sure you want to reserve a slot for this trek?`,
                 icon: 'question',
                 showCancelButton: true,
-                confirmButtonColor: '#198754', // Success green
+                confirmButtonColor: '#198754', 
                 cancelButtonColor: '#6c757d',
                 confirmButtonText: 'Yes, book it!'
             });
@@ -132,9 +127,7 @@ export default {
             if (result.isConfirmed) {
                 try {
                     await axios.post(`http://127.0.0.1:5000/api/user/book/${trek.id}`)
-
                     this.toast.success("Trek booked successfully!")
-                    // Refresh the list so the available slots decrement instantly
                     this.fetchOpenTreks()
                 } catch (err) {
                     this.toast.error(err.response?.data?.message || 'Error booking trek.')

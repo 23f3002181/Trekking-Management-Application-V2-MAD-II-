@@ -39,11 +39,9 @@
 
 <script>
 import axios from 'axios'
-// 1. Import the hook directly from the library
 import { useToast } from "vue-toastification"
 
 export default {
-  // 2. Add the setup() function to bridge the plugin to your component
   setup() {
     const toast = useToast();
     return { toast }
@@ -68,14 +66,11 @@ export default {
         const res = await axios.get('http://127.0.0.1:5000/api/user/bookings')
         this.myBookings = res.data
       } catch (err) {
-        // 3. Notice we use this.toast (without the $)
         this.toast.error("Failed to load history.");
       }
     },
     async exportCSV() {
       this.isExporting = true;
-
-      // FIRE THE TOAST!
       this.toast.info("Exporting your history... Please wait.");
 
       try {
@@ -103,17 +98,15 @@ export default {
               link.click();
 
               this.isExporting = false;
-              // SUCCESS TOAST!
               this.toast.success("Export completed successfully!");
             }
           } catch (pollErr) {
-            // Ignore processing errors
+            
           }
         }, 2000);
 
       } catch (err) {
         this.isExporting = false;
-        // ERROR TOAST!
         this.toast.error("Failed to start export.");
       }
     }

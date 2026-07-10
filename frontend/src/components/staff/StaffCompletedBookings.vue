@@ -11,7 +11,7 @@
         <table class="table table-hover mb-0 align-middle">
           <thead class="table-light">
             <tr>
-              <th class="ps-4">#</th>
+              <th class="ps-4">S.No.</th>
               <th>Name</th>
               <th>Email</th>
               <th>Booking Date</th>

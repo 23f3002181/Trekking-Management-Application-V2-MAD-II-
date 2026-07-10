@@ -14,7 +14,7 @@ DEFAULT_IMAGE = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600
 
 admin_bp = Blueprint('admin_bp', __name__)
 
-# --- TREK MANAGEMENT ---
+# for managing treks
 @admin_bp.route('/api/admin/treks', methods=['GET', 'POST'])
 @auth_required('token')
 @roles_required('admin')
@@ -24,9 +24,7 @@ def manage_treks():
         image_file = request.files.get('image')
         filename = None
         if image_file:
-            # Secure the filename and save it
             filename = secure_filename(image_file.filename)
-            # Ensure directory exists
             os.makedirs(os.path.join(current_app.root_path, UPLOAD_FOLDER), exist_ok=True)
             image_file.save(os.path.join(current_app.root_path, UPLOAD_FOLDER, filename))
 
@@ -51,7 +49,6 @@ def manage_treks():
     
     trek_list = []
     for t in treks:
-        # Fetch staff name if assigned
         staff = StaffProfile.query.get(t.assigned_staff_id) if t.assigned_staff_id else None
         image_url = f"http://127.0.0.1:5000/static/uploads/{t.image_filename}" if t.image_filename else DEFAULT_IMAGE
         
@@ -74,23 +71,19 @@ def manage_treks():
     staff_list = [{"id": s.id, "name": s.name} for s in staff_profiles]
     return jsonify({"treks": trek_list, "staff": staff_list}), 200
 
-# NEW: API to Assign/Reassign Staff to a Trek
+# Assign/Reassign Staff to a Trek
 @admin_bp.route('/api/admin/treks/<int:trek_id>/assign', methods=['PUT'])
 @auth_required('token')
 @roles_required('admin')
 def assign_trek_staff(trek_id):
     data = request.get_json()
     trek = Trek.query.get_or_404(trek_id)
-    
-    # Get the staff ID (can be None if admin is unassigning)
     staff_id = data.get('staff_id') 
-    
     trek.assigned_staff_id = staff_id if staff_id else None
     db.session.commit()
-    
     return jsonify({"message": "Staff assignment updated!"}), 200
 
-# --- DASHBOARD STATS ---
+# stats for admin dashboard
 @admin_bp.route('/api/admin/stats', methods=['GET'])
 @auth_required('token')
 @roles_required('admin')
@@ -107,7 +100,7 @@ def get_stats():
         "total_bookings": total_bookings
     }), 200
 
-# --- STAFF MANAGEMENT ---
+# manage trek staff
 @admin_bp.route('/api/admin/staff', methods=['GET', 'POST'])
 @auth_required('token')
 @roles_required('admin')
@@ -132,8 +125,7 @@ def manage_staff():
         db.session.add(new_staff)
         db.session.commit()
         return jsonify({"message": "Trek Staff created successfully"}), 201
-    
-    # GET Request: Fetch Staff List with Status
+
     staff_profiles = StaffProfile.query.all()
     staff_data = []
     for sp in staff_profiles:
@@ -148,36 +140,35 @@ def manage_staff():
         })
     return jsonify(staff_data), 200
 
-# --- USER (TREKKER) MANAGEMENT ---
+# manage trek users
 @admin_bp.route('/api/admin/users', methods=['GET'])
 @auth_required('token')
 @roles_required('admin')
 def get_all_users():
-    # Fetch all users who have the 'trekker' role
     users = User.query.filter(User.roles.any(name='trekker')).all()
     user_data = []
     for u in users:
         user_data.append({
             "id": u.id,
-            "name": u.full_name or "N/A",  # Added full_name
+            "name": u.full_name or "N/A",  
             "email": u.email,
-            "contact": u.contact or "N/A", # Added contact
+            "contact": u.contact or "N/A",
             "active": u.active
         })
     return jsonify(user_data), 200
 
-# --- TOGGLE ACTIVE/BLACKLIST STATUS ---
+# route for toggle
 @admin_bp.route('/api/admin/users/<int:user_id>/toggle-status', methods=['PUT'])
 @auth_required('token')
 @roles_required('admin')
 def toggle_user_status(user_id):
     user = User.query.get_or_404(user_id)
-    user.active = not user.active  # Toggle the boolean
+    user.active = not user.active 
     db.session.commit()
     status_text = "whitelisted" if user.active else "blacklisted"
     return jsonify({"message": f"User successfully {status_text}."}), 200
 
-# --- BOOKINGS ---
+# manage trek bookings
 @admin_bp.route('/api/admin/bookings', methods=['GET'])
 @auth_required('token')
 @roles_required('admin')
@@ -207,8 +198,6 @@ def get_all_bookings():
 def edit_trek(trek_id):
     data = request.form
     trek = Trek.query.get_or_404(trek_id)
-    
-    # Handle Image Update
     image_file = request.files.get('image')
     if image_file:
         filename = secure_filename(image_file.filename)
@@ -222,13 +211,10 @@ def edit_trek(trek_id):
     trek.duration_days = data.get('duration', trek.duration_days)
     new_total_slots = int(data.get('total_slots', trek.total_slots))
     if new_total_slots != trek.total_slots:
-        # If capacity goes up by 5, available slots goes up by 5. 
-        # If capacity drops by 2, available drops by 2.
         slot_difference = new_total_slots - trek.total_slots
         trek.total_slots = new_total_slots
         trek.available_slots = trek.available_slots + slot_difference
-    
-    # Handle staff assignment changes from the edit form
+
     staff_id = data.get('staff_id')
     trek.assigned_staff_id = staff_id if staff_id else None
     
@@ -244,21 +230,16 @@ def edit_trek(trek_id):
 def delete_trek(trek_id):
     trek = Trek.query.get_or_404(trek_id)
     
-    # 1. Check if there are any NON-CANCELLED bookings
+    # Check for non-cancelled bookings
     active_bookings = Booking.query.filter(
         Booking.trek_id == trek.id,
         Booking.status != 'Cancelled'
     ).first()
-
-    # If an active or completed booking exists, block the deletion
     if active_bookings:
         return jsonify({"message": "Cannot delete trek because active bookings exist."}), 400
         
-    # 2. If we reach here, all bookings (if any) are 'Cancelled'.
-    # We must delete them first to prevent Database Foreign Key errors.
     Booking.query.filter_by(trek_id=trek.id).delete()
     
-    # 3. Safely delete the trek
     db.session.delete(trek)
     db.session.commit()
     cache.clear()
@@ -270,7 +251,6 @@ def delete_trek(trek_id):
 @auth_required('token')
 @roles_required('admin')
 def get_trek_participants(trek_id):
-    # Join Booking and User where the trek ID matches
     bookings = db.session.query(Booking, User)\
         .join(User, Booking.user_id == User.id)\
         .filter(Booking.trek_id == trek_id).all()

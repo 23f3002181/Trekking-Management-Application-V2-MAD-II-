@@ -9,7 +9,3 @@ export default {
   name: 'App'
 }
 </script>
-
-<style>
-/* You can leave this blank, Bootstrap handles our styling */
-</style>

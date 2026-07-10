@@ -74,7 +74,6 @@ export default {
         contact: ''
       },
       isSaving: false
-      // Removed message and isError!
     }
   },
   mounted() {
@@ -96,12 +95,9 @@ export default {
           full_name: this.profile.full_name,
           contact: this.profile.contact
         })
-        
-        // SUCCESS TOAST
         this.toast.success(res.data.message || "Profile updated successfully!")
         
       } catch (err) {
-        // ERROR TOAST
         this.toast.error('Failed to update profile.')
       } finally {
         this.isSaving = false

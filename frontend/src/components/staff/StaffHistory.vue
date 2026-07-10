@@ -64,8 +64,6 @@ export default {
     async fetchAllCompletedBookings() {
       try {
         const token = localStorage.getItem('authToken');
-        
-        // Call the new dedicated history route!
         const res = await axios.get('http://127.0.0.1:5000/api/staff/history', {
           headers: { 'Authentication-Token': token }
         });

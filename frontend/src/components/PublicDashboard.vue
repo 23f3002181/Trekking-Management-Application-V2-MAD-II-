@@ -29,10 +29,10 @@
               </router-link>
 
               <div v-else class="d-flex gap-2">
-                <router-link to="/user-dashboard" class="btn btn-light rounded-pill px-4">
+                <router-link :to="dashboardLink" class="btn btn-light rounded-pill px-4">
                   My Dashboard
                 </router-link>
-                <button @click="handleLogout" class="btn btn-outline-danger rounded-pill px-4">
+                <button @click="handleLogout" class="btn btn-danger rounded-pill px-4 shadow-sm">
                   Logout
                 </button>
               </div>
@@ -136,8 +136,8 @@
     <!-- 5. ANALYTICS SECTION -->
     <section id="analytics" class="py-5 bg-light">
       <div class="container text-center mb-5">
-        <h2 class="display-4 fw-bold text-dark">Platform Transparency</h2>
-        <p class="display-6 text-muted">We believe in open data. Check out our real-time community statistics.</p>
+        <h2 class="display-6 fw-bold text-dark">Platform Transparency</h2>
+        <p class="text-muted">We believe in open data. Check out our real-time community statistics.</p>
       </div>
 
       <div class="container pb-5">
@@ -201,7 +201,8 @@
       <div class="container">
         <div class="row gy-4">
           <div class="col-md-4">
-            <h5 class="fw-bold mb-3 d-flex align-items-center"><span class="fs-4 me-2">🏔️</span> TrekApp</h5>
+            <h5 class="fw-bold mb-3 d-flex align-items-center"><span class="fs-4 me-2"><i
+                  class="bi bi-backpack4-fill"></i></span> TrekApp</h5>
             <p class="text-white-50 small">
               Making adventure accessible, safe, and unforgettable. Join the community and step into the wild.
             </p>
@@ -254,8 +255,9 @@ export default {
   data() {
     return {
       isLoggedIn: false,
+      dashboardLink: '/user-dashboard',
       loaded: false,
-      popularTreksList: [], // NEW: Holds the mapped data for the slider
+      popularTreksList: [], 
       barChartData: null,
       pieChartData: null,
       lineChartData: null,
@@ -276,18 +278,23 @@ export default {
   async mounted() {
     if (localStorage.getItem('authToken')) {
       this.isLoggedIn = true;
+      const role = localStorage.getItem('userRole');
+      if (role === 'admin') {
+        this.dashboardLink = '/admin-dashboard';
+      } else if (role === 'staff') {
+        this.dashboardLink = '/staff-dashboard';
+      } else {
+        this.dashboardLink = '/user-dashboard';
+      }
     }
 
     try {
       const response = await axios.get('http://127.0.0.1:5000/api/public/analytics');
       const data = response.data;
-
-      // UPDATE: Map the analytics data to build the slider cards dynamically
       if (data.popular_treks && data.popular_treks.labels) {
         this.popularTreksList = data.popular_treks.labels.map((trekName, index) => ({
           name: trekName,
           bookings: data.popular_treks.data[index],
-          // NEW: Grab the image directly from the API response
           image: data.popular_treks.images[index]
         }));
       }
@@ -332,6 +339,7 @@ export default {
 
       if (result.isConfirmed) {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('userRole');
         this.isLoggedIn = false;
         Toast.fire({ icon: 'success', title: 'Successfully logged out.' });
       }
@@ -339,7 +347,6 @@ export default {
     scrollToEnd() {
       const slider = this.$refs.trekSlider;
       if (slider) {
-        // Scroll to the maximum width of the container smoothly
         slider.scrollTo({
           left: slider.scrollWidth,
           behavior: 'smooth'
@@ -356,10 +363,9 @@ export default {
   scroll-behavior: smooth;
 }
 
-/* Hero Section */
 .hero-section {
   min-height: 80vh;
-  background-image: url('https://images.unsplash.com/photo-1522199755839-a2bacb67c546?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+  background-image: url('http://127.0.0.1:5000/static/hero_image.jpg');
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -409,7 +415,6 @@ export default {
   justify-content: center;
 }
 
-/* Scrolling Wrapper (Netflix Style Slider) */
 .scrolling-wrapper {
   overflow-x: auto;
   overflow-y: hidden;
@@ -417,10 +422,8 @@ export default {
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
   padding-bottom: 20px;
-  /* Space for shadow */
 }
 
-/* Hide scrollbar for clean UI */
 .scrolling-wrapper::-webkit-scrollbar {
   display: none;
 }
@@ -437,7 +440,6 @@ export default {
 .trek-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   white-space: normal;
-  /* Fix text wrapping inside cards */
 }
 
 .trek-card:hover {
@@ -445,7 +447,6 @@ export default {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
 }
 
-/* Chart Cards */
 .stat-card {
   transition: transform 0.3s ease;
 }
@@ -460,7 +461,6 @@ export default {
   min-height: 300px;
 }
 
-/* Footer Links */
 .hover-white {
   transition: color 0.2s ease;
 }

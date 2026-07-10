@@ -55,28 +55,24 @@ import Swal from 'sweetalert2'
 export default {
   methods: {
     async logout() {
-      // 1. Ask for confirmation
       const result = await Swal.fire({
         title: 'Are you sure?',
         text: "You will be logged out of your account.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545', // Danger red
-        cancelButtonColor: '#6c757d',  // Secondary gray
+        confirmButtonColor: '#dc3545', 
+        cancelButtonColor: '#6c757d',  
         confirmButtonText: 'Yes, log me out'
       })
 
-      // 2. If they click "Yes"
       if (result.isConfirmed) {
         localStorage.removeItem('authToken')
-        
-        // Optional: Fire a quick toast right before redirecting
+
         const Toast = Swal.mixin({
           toast: true, position: 'top-end', showConfirmButton: false, timer: 1500
         })
         Toast.fire({ icon: 'success', title: 'Logged out successfully' })
-        
-        // Redirect to home/login
+
         this.$router.push('/')
       }
     }

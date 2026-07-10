@@ -23,6 +23,9 @@
             <h5 class="card-title fw-bold mb-3">{{ trek.name }}</h5>
             <p class="text-dark mb-3">{{ trek.location }}</p>
             <p class="text-muted mb-3">{{ trek.difficulty }} : {{ trek.duration }} Days</p>
+            <p class="text-dark small mb-3 fw-semibold">
+              <i class="bi bi-calendar3 me-1"></i> {{ trek.start_date }} - {{ trek.end_date }}
+            </p>
             <p class="text-dark mb-4">Slots Left: {{ trek.slots }}</p>
 
             <div class="mt-auto">
@@ -93,12 +96,11 @@
 
 <script>
 import axios from 'axios'
-import { useTrekStore } from '../../stores/trekStore' // 1. Import the store
+import { useTrekStore } from '../../stores/trekStore'
 import { useToast } from "vue-toastification"
 import Swal from 'sweetalert2'
 
 export default {
-  // 2. Initialize the store for this component
   setup() {
     const trekStore = useTrekStore();
     const toast = useToast();
@@ -131,14 +133,13 @@ export default {
         const res = await axios.get('http://127.0.0.1:5000/api/user/profile')
         this.userFullName = res.data.full_name
       } catch (err) {
-        // Silent fail
+        
       }
     },
     async fetchOpenTreks() {
       try {
         const res = await axios.get('http://127.0.0.1:5000/api/user/treks', {
           params: {
-            // 3. Pull the difficulty filter from Pinia memory
             difficulty: this.trekStore.filterDifficulty
           }
         })
@@ -147,7 +148,6 @@ export default {
         console.error("Failed to load treks")
       }
     },
-    // 4. New method to update the store when the dropdown changes
     onFilterChange(event) {
       this.trekStore.updateDifficulty(event.target.value);
       this.fetchOpenTreks();
@@ -157,27 +157,23 @@ export default {
         const res = await axios.get('http://127.0.0.1:5000/api/user/bookings')
         this.myBookings = res.data
       } catch (err) {
-        // Silent fail
+
       }
     },
     async bookTrek(trek) {
-      // 1. Ask for permission first
       const result = await Swal.fire({
         title: `Book ${trek.name}?`,
         text: `Are you sure you want to reserve a slot for this trek?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#198754', // Bootstrap Success Green
+        confirmButtonColor: '#198754', 
         cancelButtonColor: '#6c757d',
         confirmButtonText: 'Yes, book it!'
       });
 
-      // 2. Only proceed if they clicked Yes
       if (result.isConfirmed) {
         try {
-          // Use trek.id for the API call
           await axios.post(`http://127.0.0.1:5000/api/user/book/${trek.id}`)
-
           this.toast.success("Trek booked successfully!")
           this.fetchOpenTreks()
           this.fetchMyBookings()
@@ -191,7 +187,7 @@ export default {
 </script>
 
 <style scoped>
-/* Minor custom styling to enforce the exact border colors from the image */
+
 .card {
   border: 1px solid #e9ecef !important;
 }

@@ -7,8 +7,6 @@ export const useTrekStore = defineStore('trekSearch', {
     currentPage: 1
   }),
   actions: {
-    // We create actions to update the state.
-    // Notice how changing the search or filter automatically resets the page to 1!
     updateSearch(query) {
       this.searchQuery = query;
       this.currentPage = 1; 

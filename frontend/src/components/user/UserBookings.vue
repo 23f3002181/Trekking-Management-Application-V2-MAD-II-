@@ -60,7 +60,7 @@
 <script>
 import axios from 'axios'
 import { useToast } from "vue-toastification"
-import Swal from 'sweetalert2' // 1. Import SweetAlert
+import Swal from 'sweetalert2' 
 
 export default {
   setup() {
@@ -89,40 +89,30 @@ export default {
         this.toast.error("Failed to load your bookings.");
       }
     },
-    
-    // 2. The Updated Cancel Method
     async cancelBooking(bookingId) {
-      // Fire the SweetAlert confirmation dialog
       const result = await Swal.fire({
         title: 'Are you sure?',
         text: "You won't be able to undo this cancellation!",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#dc3545', // Bootstrap danger red
-        cancelButtonColor: '#6c757d',  // Bootstrap secondary grey
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
         confirmButtonText: 'Yes, cancel it!',
         cancelButtonText: 'No, keep it'
       });
-
-      // If the user clicks "Yes, cancel it!"
       if (result.isConfirmed) {
         this.isProcessing = bookingId;
         
         try {
           const response = await axios.put(`http://127.0.0.1:5000/api/user/bookings/${bookingId}/cancel`);
-          
-          // SUCCESS TOAST
           this.toast.success(response.data.message || "Booking cancelled.");
-          
           await this.fetchMyBookings();
         } catch (err) {
-          // ERROR TOAST
           this.toast.error(err.response?.data?.message || 'Error cancelling booking.');
         } finally {
           this.isProcessing = null;
         }
       }
-      // If they click cancel, it just silently closes the dialog and does nothing!
     }
   }
 }

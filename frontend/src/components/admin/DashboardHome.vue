@@ -137,16 +137,13 @@ export default {
     return {
       stats: { total_treks: 0, total_users: 0, total_staff: 0, total_bookings: 0 },
       bookingList: [],
-      
-      // Filter & Pagination State
       searchQuery: '',
       statusFilter: '',
       currentPage: 1,
-      itemsPerPage: 10 // Show 10 rows per page
+      itemsPerPage: 10 
     }
   },
   computed: {
-    // 1. First, apply the Search and Status filters
     filteredBookings() {
       let result = this.bookingList;
 
@@ -165,11 +162,9 @@ export default {
 
       return result;
     },
-    // 2. Calculate the total number of pages needed for the filtered data
     totalPages() {
       return Math.ceil(this.filteredBookings.length / this.itemsPerPage) || 1;
     },
-    // 3. Slice the data to only return the items for the current page
     paginatedBookings() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
       const end = start + this.itemsPerPage;
@@ -177,7 +172,6 @@ export default {
     }
   },
   watch: {
-    // Reset to page 1 automatically if the user changes the search or filter
     searchQuery() {
       this.currentPage = 1;
     },

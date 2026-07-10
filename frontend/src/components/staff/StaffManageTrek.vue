@@ -100,7 +100,7 @@
               <table class="table table-hover mb-0 align-middle">
                 <thead class="table-light">
                   <tr>
-                    <th class="ps-3">#</th>
+                    <th class="ps-3">S.No.</th>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Booking Date</th>
@@ -160,14 +160,13 @@ export default {
     }
   },
   computed: {
-    // Keeps the active table clean by hiding users who are already completed
     activeParticipants() {
       return this.participants.filter(p => p.status !== 'Completed')
     },
     todayDate() {
       const today = new Date();
       const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+      const month = String(today.getMonth() + 1).padStart(2, '0'); 
       const day = String(today.getDate()).padStart(2, '0');
 
       return `${year}-${month}-${day}`;
@@ -203,46 +202,30 @@ export default {
         this.toast.error("Error fetching participants.")
       }
     },
-
-    // Helper to get today's date in YYYY-MM-DD format for HTML date inputs
     getTodayDate() {
       const today = new Date();
-
       const year = today.getFullYear();
-      // getMonth() starts at 0 (January), so we add 1.
-      // padStart(2, '0') ensures we get "07" instead of just "7".
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
 
       return `${year}-${month}-${day}`;
     },
-
-    // 1. The linear workflow method to start the trek
     async markAsStarted() {
-      // Fire the SweetAlert confirmation
       const result = await Swal.fire({
         title: 'Start this Trek?',
         text: "This will officially begin the trek and lock the start date. Are you sure?",
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: '#ffc107', // Bootstrap Warning Yellow to match your HTML button
+        confirmButtonColor: '#ffc107',
         cancelButtonColor: '#6c757d',
         confirmButtonText: 'Yes, start it!'
       });
 
-      // Stop execution if they click "Cancel"
       if (!result.isConfirmed) return;
-
-      // Automatically assign today's date to the start date
       this.trek.start_date = this.getTodayDate();
-
-      // Proceed with the database update
       await this.updateTrek('Started');
     },
-
-    // 2. The Core Update Method
     async updateTrek(newStatus) {
-      // Intercept the "Completed" status with a SweetAlert warning
       if (newStatus === 'Completed') {
         const result = await Swal.fire({
           title: 'Mark Trek as Completed?',
@@ -253,20 +236,12 @@ export default {
           cancelButtonColor: '#6c757d',
           confirmButtonText: 'Yes, complete it!'
         });
-
-        // Stop execution if they click "Cancel"
         if (!result.isConfirmed) return;
-
-        // Automatically assign today's date to the end date
         this.trek.end_date = this.getTodayDate();
       }
-
-      // Execute the API update
       try {
         const token = localStorage.getItem('authToken')
         const trekId = this.$route.params.id
-
-        // Build payload including dynamic slots and dates
         const payload = {
           status: newStatus,
           total_slots: this.trek.total_slots,
@@ -278,16 +253,13 @@ export default {
           headers: { 'Authentication-Token': token }
         })
 
-        // Update UI state and fire success toast
         this.toast.success(`Saved changes successfully! Trek is now ${newStatus}.`)
         this.trek.status = newStatus
 
-        // Update available slots dynamically from backend calculation
         if (res.data.available_slots !== undefined) {
           this.trek.available_slots = res.data.available_slots;
         }
 
-        // Refresh the participant list to reflect the backend cascade effect immediately
         if (newStatus === 'Completed') {
           this.fetchParticipants()
         }
