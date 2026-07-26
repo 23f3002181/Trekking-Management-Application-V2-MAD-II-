@@ -42,11 +42,6 @@ def make_celery(app):
         'monthly-report-test': {
             'task': 'tasks.send_monthly_report',
             'schedule': 120.0, 
-        },
-        'auto-complete-treks-midnight': {
-            'task': 'tasks.auto_complete_treks',
-            #'schedule': crontab(hour=0, minute=0),Runs every night at midnight UTC
-            'schedule': 90.0, # every 90 seconds for testing
         }
     }
     celery.conf.timezone = 'UTC'
